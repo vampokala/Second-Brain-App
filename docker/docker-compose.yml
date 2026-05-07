@@ -1,0 +1,56 @@
+# Full stack (React + FastAPI) in one container on :8000. Streamlit is not part of this stack;
+# run it locally only if needed: PYTHONPATH=. streamlit run src/web/streamlit_app.py
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: doc_ingestion_api
+    environment:
+      - ENV=dev
+      # React demo session + uploads (override for hardened deploys).
+      - DOC_PROFILE=${DOC_PROFILE:-demo}
+      - DOC_DEMO_UPLOADS=${DOC_DEMO_UPLOADS:-1}
+      - DOC_API_KEYS=${DOC_API_KEYS:-change-me}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - HF_HOME=/app/.cache/huggingface
+      - TRANSFORMERS_CACHE=/app/.cache/huggingface/transformers
+      - SENTENCE_TRANSFORMERS_HOME=/app/.cache/huggingface/sentence_transformers
+      - HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-0}
+      - TRANSFORMERS_OFFLINE=${TRANSFORMERS_OFFLINE:-0}
+      - PORT=8000
+    volumes:
+      - ../data:/app/data
+      - ../config.yaml:/app/config.yaml
+      - hf_cache:/app/.cache/huggingface
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: doc_ingestion_redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: doc_ingestion_qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  qdrant_data:
+  redis_data:
+  hf_cache:

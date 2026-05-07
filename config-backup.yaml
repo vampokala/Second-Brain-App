@@ -1,0 +1,41 @@
+name: Hybrid Mac M4 Pro
+version: 0.0.1
+schema: v1
+models:
+  - name: Local Autocomplete
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    apiBase: http://localhost:11434
+    roles:
+      - autocomplete
+    autocompleteOptions:
+      debounceDelay: 250
+      maxPromptTokens: 1024
+      multilineCompletions: auto
+    defaultCompletionOptions:
+      contextLength: 2048
+  - name: Local Editor
+    provider: ollama
+    model: qwen2.5-coder:14b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 4096
+  - name: Cloud Architect
+    provider: your-cloud-provider
+    model: your-best-cloud-model
+    apiKey: YOUR_API_KEY
+    roles:
+      - chat
+  - name: Local Embeddings
+    provider: ollama
+    model: nomic-embed-text
+    apiBase: http://localhost:11434
+    roles:
+      - embed
+  - name: Autodetect
+    provider: ollama
+    model: AUTODETECT

@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]   # pycodestyle errors, pyflakes, isort
+
+[tool.mypy]
+python_version = "3.13"
+strict = false
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]

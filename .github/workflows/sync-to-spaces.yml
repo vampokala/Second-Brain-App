@@ -1,0 +1,30 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Push to HF Spaces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ vars.HF_USERNAME }}
+          HF_SPACE_NAME: ${{ vars.HF_SPACE_NAME }}
+        run: |
+          git config --global user.email "ci@github-actions"
+          git config --global user.name "GitHub Actions"
+          git remote add space \
+            "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE_NAME}"
+          # Push the full repo — HF Spaces uses spaces/app.py as the entry point.
+          git push space HEAD:main --force

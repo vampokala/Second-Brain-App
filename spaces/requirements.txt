@@ -1,0 +1,28 @@
+# Slimmed dependencies for Hugging Face Spaces (CPU, no Redis/Qdrant).
+# Heavy deps excluded: bert-score, sacrebleu, qdrant-client, redis.
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+rank-bm25>=0.2.2
+pydantic>=2.0.0
+pyyaml>=6.0
+nltk>=3.8
+spacy>=3.6.0
+python-magic>=0.4.27
+PyPDF2>=3.0.0
+python-docx>=0.8.11
+markdown>=3.4.0
+beautifulsoup4>=4.12.0
+ollama>=0.1.0
+requests>=2.31.0
+fastapi>=0.115.0
+uvicorn>=0.30.0
+streamlit>=1.37.0
+transformers>=4.30.0
+torch>=2.0.0
+tokenizers>=0.13.0
+rouge-score>=0.1.2
+tiktoken>=0.5.0
+openai>=1.0.0
+anthropic>=0.25.0
+google-generativeai>=0.5.0
+scipy>=1.10.0

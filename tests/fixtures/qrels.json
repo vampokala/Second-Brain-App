@@ -1,0 +1,11 @@
+{
+  "description": "Tiny synthetic qrels for metric smoke tests",
+  "qrels": {
+    "q1": ["doc_a", "doc_b"],
+    "q2": ["doc_c"]
+  },
+  "graded": {
+    "q1": {"doc_a": 2.0, "doc_b": 1.0, "doc_x": 0.0},
+    "q2": {"doc_c": 1.0}
+  }
+}

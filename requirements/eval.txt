@@ -1,0 +1,9 @@
+# Optional evaluation dependencies.
+# Install when running the RAGAS-based offline eval harness:
+#   pip install -r requirements/eval.txt
+#
+# Not needed for the core pipeline or inline truthfulness scoring.
+-r base.txt
+ragas>=0.2
+langchain-core>=0.3
+datasets>=2.0

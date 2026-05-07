@@ -1,0 +1,19 @@
+
+/* Force tables to fill page width */
+.markdown-preview-view table,
+.markdown-reading-view table {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+/* Wrap text inside table cells */
+.markdown-preview-view td,
+.markdown-preview-view th {
+  white-space: normal !important;
+  word-break: break-word;
+}
+
+/* Remove horizontal scrollbar */
+div.table-wrapper {
+  overflow-x: hidden;
+}

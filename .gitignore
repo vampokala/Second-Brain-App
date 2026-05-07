@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local tools / IDE
+.env
+.cursor/
+.claude/
+
+# Generated indexes (rebuild with ingest)
+data/embeddings/
+
+# Eval reports (generated at runtime)
+evals/reports/

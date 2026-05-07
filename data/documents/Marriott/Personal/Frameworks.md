@@ -1,0 +1,17 @@
+System prompt frameworks - 
+
+| Framework                                                                               | Description                                                                                   | Best For                                                                                                  | Example Use[tools.eq4c+1](https://tools.eq4c.com/50-popular-ai-prompting-frameworks-with-use-cases-example-prompts/) |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| RTF (Request, Task, Format)                                                             | Assign role/request, define task, specify output format.                                      | Universal prompting, code reviews.                                                                        | "Role: Developer. Task: Debug script. Format: Bullet list."                                                          |
+| CRISPE (Clarity, Relevance, Iteration, Specificity, Parameters, Examples)               | Ensure clear goals, relevance to context, iterative refinement, specifics, limits, and demos. | Technical planning, strategy.                                                                             | Builds detailed system instructions for complex projects.                                                            |
+| CIDI (Context, Instructions, Details, Input)                                            | Provide background, steps, key facts, then user input handling.                               | Project management, custom tools.                                                                         | "Context: E-commerce site. Instructions: Suggest features..."                                                        |
+| Chain-of-Thought (CoT)                                                                  | Instruct step-by-step reasoning in the system prompt.                                         | Analytical tasks, problem-solving.                                                                        | "Think step-by-step before responding."[promptingguide](https://www.promptingguide.ai/guides/optimizing-prompts)​    |
+| RHODES (Role, Objective, Details, Examples, Sense Check)                                | Define persona, goal, info, samples, and validation.                                          | Creative or marketing AIs.                                                                                | Role-based assistants with self-review.                                                                              |
+| Five S (Set scene, Specify task, Simplify language, Structure response, Share feedback) | Scene-setting, task clarity, simple wording, formatted output, iterative feedback.            | Enterprise bots, education.[parloa](https://www.parloa.com/knowledge-hub/prompt-engineering-frameworks/)​ | Customer service or training tools.                                                                                  |
+
+![[Pasted image 20260124085752.png]]
+
+
+![[Pasted image 20260124090402.png]]
+
+

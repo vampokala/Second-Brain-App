@@ -1,0 +1,35 @@
+# Core dependencies
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+rank-bm25>=0.2.2
+pydantic>=2.0.0
+pyyaml>=6.0
+nltk>=3.8
+spacy>=3.6.0
+python-magic>=0.4.27
+PyPDF2>=3.0.0
+python-docx>=0.8.11
+markdown>=3.4.0
+beautifulsoup4>=4.12.0
+ollama>=0.1.0
+qdrant-client>=1.7.0
+requests>=2.31.0
+fastapi>=0.115.0
+python-multipart>=0.0.27
+uvicorn>=0.30.0
+streamlit>=1.37.0
+redis>=5.0.0
+
+# Phase 3: reranking & generation
+transformers>=4.30.0
+torch>=2.0.0
+torchvision>=0.15.0
+accelerate>=0.20.0
+tokenizers>=0.13.0
+tiktoken>=0.5.0
+rouge-score>=0.1.2
+bert-score>=0.3.13
+sacrebleu>=2.3.0
+
+# Phase 5: observability & monitoring
+langfuse>=2.0.0
