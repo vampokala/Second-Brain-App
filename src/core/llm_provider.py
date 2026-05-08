@@ -58,13 +58,15 @@ class OllamaProvider:
         attempts = 3
         for idx in range(attempts):
             started = False
+            ka = os.getenv("OLLAMA_KEEP_ALIVE", "5m")
             try:
-                stream = self._client.chat(
+                stream_iter = self._client.chat(
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
                     stream=True,
+                    keep_alive=ka,
                 )
-                for chunk in stream:  # type: ignore[assignment]
+                for chunk in stream_iter:  # type: ignore[assignment]
                     started = True
                     msg = chunk.get("message") or {}
                     piece = msg.get("content") or ""
@@ -81,6 +83,7 @@ class OllamaProvider:
         attempts = 3
         last_error: Exception | None = None
         messages = [{"role": "user", "content": prompt}]
+        ka = os.getenv("OLLAMA_KEEP_ALIVE", "5m")
         for idx in range(attempts):
             try:
                 if stream:
@@ -88,11 +91,13 @@ class OllamaProvider:
                         model=model,
                         messages=messages,
                         stream=True,
+                        keep_alive=ka,
                     )
                 return self._client.chat(
                     model=model,
                     messages=messages,
                     stream=False,
+                    keep_alive=ka,
                 )
             except Exception as exc:  # transient local daemon failures
                 last_error = exc

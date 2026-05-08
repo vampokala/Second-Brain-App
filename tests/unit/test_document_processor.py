@@ -121,6 +121,46 @@ class TestExtractMetadata:
             os.unlink(path)
 
 
+class TestMarkdownFrontmatter:
+    def test_frontmatter_parses_title_and_tags(self, processor):
+        content = """---
+title: My Note
+tags: [a, b]
+section: concepts
+---
+Body line one.
+"""
+        path = _write_temp_file(content, ".md")
+        try:
+            result = processor.process_document(path, vault_root=None, relpath="wiki/note.md")
+            assert result is not None
+            assert result["metadata"]["title"] == "My Note"
+            assert "a" in result["metadata"]["tags"]
+            assert result["metadata"]["section"] == "concepts"
+            assert "Body line one" in " ".join(result["chunks"])
+        finally:
+            os.unlink(path)
+
+    def test_code_fences_omitted_from_chunks(self, processor):
+        content = """Intro text.
+
+```
+skip this block
+```
+
+Outro text here.
+"""
+        path = _write_temp_file(content, ".md")
+        try:
+            result = processor.process_document(path, relpath="raw/x.md")
+            assert result is not None
+            joined = " ".join(result["chunks"]).lower()
+            assert "skip this block" not in joined
+            assert "intro" in joined
+        finally:
+            os.unlink(path)
+
+
 class TestProcessDocument:
     def test_returns_dict_with_expected_keys(self, processor):
         path = _write_temp_file("Hello world content", ".txt")

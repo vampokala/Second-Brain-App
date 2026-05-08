@@ -18,7 +18,10 @@ export default defineConfig({
       '/metrics': { target: devApiTarget, changeOrigin: true },
       '/sessions': { target: devApiTarget, changeOrigin: true },
       '/query': { target: devApiTarget, changeOrigin: true },
-      '/observability': { target: devApiTarget, changeOrigin: true },
+      '/ingest': { target: devApiTarget, changeOrigin: true },
+      '/events': { target: devApiTarget, changeOrigin: true },
+      '/admin': { target: devApiTarget, changeOrigin: true },
+      '/reindex': { target: devApiTarget, changeOrigin: true },
     },
   },
   test: {

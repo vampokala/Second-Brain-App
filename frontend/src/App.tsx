@@ -1,9 +1,10 @@
 import * as Tabs from '@radix-ui/react-tabs'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AlertCircle, BookOpen, Database, FileText, Fingerprint } from 'lucide-react'
+import { AlertCircle, BookOpen, Database, FileText, Fingerprint, Upload } from 'lucide-react'
 import { useMemo } from 'react'
 import { QueryTab } from './tabs/QueryTab'
 import { OverviewTab } from './tabs/OverviewTab'
+import { IngestTab } from './tabs/IngestTab'
 import { DocumentsTab } from './tabs/DocumentsTab'
 import { SessionProvider } from './session/SessionProvider'
 import { useSession } from './session/SessionContext'
@@ -80,6 +81,13 @@ function Shell() {
               Query
             </Tabs.Trigger>
             <Tabs.Trigger
+              value="ingest"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            >
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              Ingest
+            </Tabs.Trigger>
+            <Tabs.Trigger
               value="documents"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
             >
@@ -92,6 +100,9 @@ function Shell() {
           </Tabs.Content>
           <Tabs.Content value="query">
             <QueryTab />
+          </Tabs.Content>
+          <Tabs.Content value="ingest">
+            <IngestTab />
           </Tabs.Content>
           <Tabs.Content value="documents">
             <DocumentsTab />

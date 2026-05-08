@@ -1,5 +1,9 @@
 """
 YAML-based configuration with environment variable overrides.
+
+Second Brain: vault path, Postgres URL, and vector backend are read from
+environment via ``src.utils.sb_env.load_second_brain_settings()`` when
+``DATABASE_URL`` is set.
 """
 from __future__ import annotations
 

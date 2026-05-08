@@ -121,6 +121,16 @@ class TestPersistence:
             os.unlink(path)
 
 
+class TestRemoveByRelpath:
+    def test_removes_matching_documents(self):
+        idx = BM25Index()
+        idx.add_document("raw/a.md#0", "hello world", {"relpath": "raw/a.md", "title": "A"})
+        idx.add_document("raw/b.md#0", "goodbye", {"relpath": "raw/b.md", "title": "B"})
+        idx.remove_by_relpath("raw/a.md")
+        assert len(idx.documents) == 1
+        assert idx.documents[0]["id"] == "raw/b.md#0"
+
+
 class TestCustomParameters:
     def test_custom_k1_b(self):
         idx = BM25Index(k1=1.2, b=0.5)

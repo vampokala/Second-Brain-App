@@ -1,3 +1,10 @@
+[project]
+name = "second-brain-app"
+version = "0.1.0"
+description = "Personal knowledge base with RAG, ingest, and chat (forked from Doc-Ingestion)"
+readme = "README.md"
+requires-python = ">=3.11"
+
 [tool.ruff]
 line-length = 120
 src = ["src"]

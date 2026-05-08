@@ -1,6 +1,6 @@
 import type { LlmConfigModel, QueryRequestModel, QueryResponseModel } from './generated'
 
-function resolveApiBaseUrl(): string {
+export function resolveApiBaseUrl(): string {
   const raw = import.meta.env.VITE_API_BASE_URL
   if (typeof raw === 'string' && raw.trim() !== '') {
     return raw.trim().replace(/\/$/, '')

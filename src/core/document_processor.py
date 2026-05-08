@@ -12,9 +12,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol
 
 import PyPDF2
+import frontmatter
 import tiktoken
 from bs4 import BeautifulSoup
 from docx import Document
+
+_CODE_FENCE_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
+_WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 
 
 class _RegexTokenizer:
@@ -57,11 +61,65 @@ class DocumentProcessor:
             self._tokenizer = _RegexTokenizer()
         self._seen_hashes: set = set()
 
-    def process_document(self, file_path: str) -> Optional[Dict]:
-        text = self.extract_text(file_path)
+    @staticmethod
+    def strip_code_fences(text: str) -> str:
+        """Replace fenced code blocks with whitespace so chunking skips them."""
+        return _CODE_FENCE_RE.sub(" ", text)
+
+    @staticmethod
+    def resolve_wikilinks(text: str, vault_root: str) -> str:
+        """Best-effort: replace [[note]] with wiki-relative path if file exists."""
+
+        def repl(match: re.Match[str]) -> str:
+            inner = match.group(1)
+            target = inner.split("|", 1)[0].strip()
+            wiki = os.path.join(vault_root, "wiki")
+            for name in (target, f"{target}.md", f"{target.replace(' ', '-')}.md"):
+                cand = os.path.join(wiki, name)
+                if os.path.isfile(cand):
+                    return os.path.relpath(cand, vault_root).replace("\\", "/")
+            return match.group(0)
+
+        return _WIKILINK_RE.sub(repl, text)
+
+    def process_document(
+        self,
+        file_path: str,
+        *,
+        vault_root: Optional[str] = None,
+        relpath: Optional[str] = None,
+    ) -> Optional[Dict]:
+        ext = os.path.splitext(file_path)[1].lower()
+        metadata = self.extract_metadata(file_path)
+        if relpath:
+            metadata["relpath"] = relpath.replace("\\", "/").lstrip("/")
+        if ext == ".md":
+            with open(file_path, encoding="utf-8") as f:
+                post = frontmatter.load(f)
+            fm = dict(post.metadata or {})
+            raw_body = post.content or ""
+            if fm.get("title"):
+                metadata["title"] = str(fm["title"])
+            tags = fm.get("tags")
+            if isinstance(tags, str):
+                tags = [tags]
+            elif tags is None:
+                tags = []
+            metadata["tags"] = list(tags)
+            metadata["section"] = str(fm.get("section") or metadata.get("section") or "")
+            doc_type = fm.get("type")
+            metadata["doc_type"] = str(doc_type) if doc_type is not None else ""
+            text = raw_body
+        else:
+            text = self.extract_text(file_path)
+
+        if vault_root:
+            text = self.resolve_wikilinks(text, vault_root)
+
         if self._is_duplicate(text):
             return None
-        metadata = self.extract_metadata(file_path)
+
+        text = self.strip_code_fences(text)
         cleaned_text = self.clean_text(text)
         chunks = self.chunk_text(cleaned_text)
         return {

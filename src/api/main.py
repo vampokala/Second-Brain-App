@@ -48,6 +48,7 @@ from src.web.ingestion_service import (
     run_ingest,
     save_uploaded_files,
 )
+from src.api.routes_ingest import router as ingest_router
 
 _cfg = load_config("config.yaml")
 _orchestrator = RAGOrchestrator(_cfg)
@@ -82,7 +83,7 @@ def _demo_uploads_enabled() -> bool:
 
 
 @asynccontextmanager
-async def _lifespan(_: FastAPI):
+async def _lifespan(app: FastAPI):
     stop = asyncio.Event()
 
     async def _janitor_loop() -> None:
@@ -96,17 +97,67 @@ async def _lifespan(_: FastAPI):
             except asyncio.TimeoutError:
                 pass
 
+    ollama_monitor = None
+    vault_watcher = None
+    if os.getenv("DATABASE_URL", "").strip():
+        from pathlib import Path as _Path
+
+        from alembic import command
+        from alembic.config import Config
+
+        from src.api.sse_bus import SSEBus
+        from src.core.ingest_pipeline import build_pipeline
+        from src.core.ollama_health import OllamaHealthMonitor
+        from src.utils.sb_env import load_second_brain_settings
+        from src.watcher.vault_watcher import VaultWatcher
+
+        root = _Path(__file__).resolve().parents[2]
+        ini = root / "alembic.ini"
+        if ini.is_file():
+            cfg = Config(str(ini))
+            command.upgrade(cfg, "head")
+
+        settings = load_second_brain_settings()
+        bus = SSEBus()
+        sem = asyncio.Semaphore(settings.max_ingest_workers)
+        base = settings.ollama_host.rstrip("/")
+        ollama_monitor = OllamaHealthMonitor(base)
+        pipeline = build_pipeline(
+            _cfg,
+            bus,
+            sem,
+            ollama_available=lambda: getattr(ollama_monitor, "is_available", True),
+        )
+        if pipeline is not None:
+            ollama_monitor.attach_pipeline(pipeline)
+            app.state.ingest_bus = bus
+            app.state.ingest_pipeline = pipeline
+            app.state.ollama_monitor = ollama_monitor
+            await ollama_monitor.start()
+            vault_watcher = VaultWatcher(
+                settings.vault_path,
+                pipeline,
+                settings.watcher_debounce_ms,
+                asyncio.get_running_loop(),
+            )
+            await vault_watcher.start()
+
     task = asyncio.create_task(_janitor_loop())
     try:
         yield
     finally:
         stop.set()
+        if vault_watcher is not None:
+            await vault_watcher.stop()
+        if ollama_monitor is not None:
+            await ollama_monitor.stop()
         task.cancel()
         with suppress(Exception):
             await task
 
 
 app = FastAPI(title="Doc Ingestion Citation API", version="0.1.0", lifespan=_lifespan)
+app.include_router(ingest_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins(),
@@ -253,8 +304,13 @@ def _build_request_metrics(request_id: str, out: QueryResponse) -> RequestMetric
 
 
 @app.get("/health", response_model=HealthModel)
-def health() -> HealthModel:
-    return HealthModel(status="ok", collection=COLLECTION_NAME)
+def health(request: Request) -> HealthModel:
+    mon = getattr(request.app.state, "ollama_monitor", None)
+    oa: bool | None = None
+    om: list[str] | None = None
+    if mon is not None:
+        oa, om = mon.snapshot()
+    return HealthModel(status="ok", collection=COLLECTION_NAME, ollama_available=oa, ollama_models=om)
 
 
 @app.get("/config/llm", response_model=LLMConfigModel)

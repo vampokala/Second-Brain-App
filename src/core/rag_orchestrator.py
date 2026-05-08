@@ -27,6 +27,7 @@ from src.core.vector_search import VectorSearch
 from src.evaluation.truthfulness import TruthfulnessResult, TruthfulnessScorer
 from src.utils.config import Config
 from src.utils.database import VectorDatabase
+from src.utils.sb_env import load_second_brain_settings
 
 BM25_INDEX_PATH = "data/embeddings/bm25_index.json"
 CHROMA_PATH = "data/embeddings/chroma"
@@ -93,13 +94,19 @@ class RAGOrchestrator:
 
     def _load_components(self, req: QueryRequest) -> tuple[
         BM25Index,
-        VectorDatabase,
+        Any,
         QueryProcessor,
         Optional[tuple[BM25Index, VectorDatabase]],
         str,
     ]:
         qp = QueryProcessor()
         requested_scope = (req.knowledge_scope or "global").strip().lower()
+        if requested_scope == "vault":
+            requested_scope = "global"
+        sb = load_second_brain_settings()
+        use_second_brain_pg = bool(os.getenv("DATABASE_URL", "").strip()) and (
+            sb.vector_backend.lower() == "pgvector"
+        )
         session_pair: Optional[tuple[BM25Index, VectorDatabase]] = None
         effective_scope = requested_scope
         if requested_scope in {"session", "both"}:
@@ -125,6 +132,7 @@ class RAGOrchestrator:
         if (
             effective_scope == "both"
             and session_pair is not None
+            and not use_second_brain_pg
             and not os.path.isfile(BM25_INDEX_PATH)
         ):
             logger.warning(
@@ -135,6 +143,16 @@ class RAGOrchestrator:
             placeholder_db = VectorDatabase(mode="dev", chroma_path=CHROMA_PATH)
             return BM25Index(), placeholder_db, qp, session_pair, effective_scope
 
+        if use_second_brain_pg:
+            from src.db.session import sync_session_factory
+            from src.utils.pgvector_store import PgVectorStore
+
+            factory = sync_session_factory()
+            with factory() as session:
+                index = BM25Index.load_from_db(session)
+            db = PgVectorStore(sb.database_url_sync, sb.embed_model)
+            return index, db, qp, session_pair, effective_scope
+
         index = BM25Index.load(BM25_INDEX_PATH)
         db = VectorDatabase(mode="dev", chroma_path=CHROMA_PATH)
         return index, db, qp, session_pair, effective_scope
@@ -143,7 +161,7 @@ class RAGOrchestrator:
         self,
         query_text: str,
         index: BM25Index,
-        db: VectorDatabase,
+        db: Any,
         qp: QueryProcessor,
         top_k: int,
         *,

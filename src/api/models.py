@@ -64,6 +64,8 @@ class QueryResponseModel(BaseModel):
 class HealthModel(BaseModel):
     status: str
     collection: str
+    ollama_available: Optional[bool] = None
+    ollama_models: Optional[List[str]] = None
 
 
 class MetricsModel(BaseModel):
