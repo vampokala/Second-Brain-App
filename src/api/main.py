@@ -48,7 +48,10 @@ from src.web.ingestion_service import (
     run_ingest,
     save_uploaded_files,
 )
+from src.api.routes_chats import router as chats_router
 from src.api.routes_ingest import router as ingest_router
+from src.api.routes_settings import router as settings_router
+from src.api.routes_vault import router as vault_router
 
 _cfg = load_config("config.yaml")
 _orchestrator = RAGOrchestrator(_cfg)
@@ -122,6 +125,14 @@ async def _lifespan(app: FastAPI):
         sem = asyncio.Semaphore(settings.max_ingest_workers)
         base = settings.ollama_host.rstrip("/")
         ollama_monitor = OllamaHealthMonitor(base)
+
+        from src.core.chat_orchestrator import ChatOrchestrator
+        from src.core.chat_store import ChatStore
+        from src.db.session import async_session_factory
+
+        app.state.chat_store = ChatStore(async_session_factory())
+        app.state.chat_orchestrator = ChatOrchestrator(_cfg, _orchestrator, app.state.chat_store)
+
         pipeline = build_pipeline(
             _cfg,
             bus,
@@ -158,6 +169,9 @@ async def _lifespan(app: FastAPI):
 
 app = FastAPI(title="Doc Ingestion Citation API", version="0.1.0", lifespan=_lifespan)
 app.include_router(ingest_router)
+app.include_router(vault_router)
+app.include_router(chats_router)
+app.include_router(settings_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins(),

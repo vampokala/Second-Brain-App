@@ -51,6 +51,10 @@ class QueryRequest:
     session_collection_name: Optional[str] = None
     session_chroma_path: Optional[str] = None
     knowledge_scope: str = "global"
+    """When set, retrieval uses this text; generation still uses ``query_text``."""
+
+    retrieval_query: Optional[str] = None
+    prefetched_retrieval: Optional[tuple] = None
 
 
 @dataclass
@@ -211,15 +215,20 @@ class RAGOrchestrator:
         trace: Any,
         step_latencies: Dict[str, float],
     ) -> tuple[Union[List[RetrievalResult], List[RankedResult]], List[RetrievalResult]]:
+        if req.prefetched_retrieval is not None:
+            step_latencies.setdefault("retrieval", 0.0)
+            step_latencies.setdefault("reranking", 0.0)
+            return req.prefetched_retrieval  # type: ignore[return-value]
         index, db, qp, session_pair, effective_scope = self._load_components(req)
         retrieve_k = max(req.top_k, 20) if req.use_rerank else req.top_k
+        retrieval_text = (req.retrieval_query or req.query_text).strip()
 
         with self.observer.trace_step(trace, "retrieval", {"top_k": retrieve_k}) as s:
             t_retrieval = time.perf_counter()
             if effective_scope == "session" and session_pair is not None:
                 s_index, s_db = session_pair
                 fused = self._retrieve(
-                    req.query_text,
+                    retrieval_text,
                     s_index,
                     s_db,
                     qp,
@@ -227,10 +236,10 @@ class RAGOrchestrator:
                     collection_name=req.session_collection_name or COLLECTION_NAME,
                 )
             elif effective_scope == "both" and session_pair is not None:
-                global_results = self._retrieve(req.query_text, index, db, qp, top_k=retrieve_k)
+                global_results = self._retrieve(retrieval_text, index, db, qp, top_k=retrieve_k)
                 s_index, s_db = session_pair
                 session_results = self._retrieve(
-                    req.query_text,
+                    retrieval_text,
                     s_index,
                     s_db,
                     qp,
@@ -239,7 +248,7 @@ class RAGOrchestrator:
                 )
                 fused = self._dedup_results(global_results + session_results, retrieve_k)
             else:
-                fused = self._retrieve(req.query_text, index, db, qp, top_k=retrieve_k)
+                fused = self._retrieve(retrieval_text, index, db, qp, top_k=retrieve_k)
             step_latencies["retrieval"] = (time.perf_counter() - t_retrieval) * 1000.0
             s["chunks_retrieved"] = len(fused)
 
@@ -256,7 +265,7 @@ class RAGOrchestrator:
                         batch_size=self.cfg.reranker.batch_size,
                         score_threshold=self.cfg.reranker.score_threshold,
                     )
-                    ranked = reranker.rerank(req.query_text, fused, top_k=req.top_k)
+                    ranked = reranker.rerank(retrieval_text, fused, top_k=req.top_k)
                 except Exception as exc:
                     logger.warning("Reranker unavailable; falling back to retrieval order: %s", exc)
                     ranked = None

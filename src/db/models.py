@@ -41,6 +41,9 @@ class Chat(Base):
     model: Mapped[str] = mapped_column(String(128), default="llama3.1:8b")
     knowledge_scope: Mapped[str] = mapped_column(String(32), default="vault")
     summary_cache: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    active_leaf_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("now()"), onupdate=text("now()")
