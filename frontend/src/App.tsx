@@ -1,11 +1,24 @@
 import * as Tabs from '@radix-ui/react-tabs'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AlertCircle, BookOpen, Database, FileText, Fingerprint, Upload } from 'lucide-react'
-import { useMemo } from 'react'
+import {
+  AlertCircle,
+  BookOpen,
+  Database,
+  FileText,
+  FolderOpen,
+  Fingerprint,
+  MessageSquare,
+  Settings,
+  Upload,
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChatTab } from './tabs/ChatTab'
 import { QueryTab } from './tabs/QueryTab'
 import { OverviewTab } from './tabs/OverviewTab'
 import { IngestTab } from './tabs/IngestTab'
 import { DocumentsTab } from './tabs/DocumentsTab'
+import { SettingsTab } from './tabs/SettingsTab'
+import { VaultTab } from './tabs/VaultTab'
 import { SessionProvider } from './session/SessionProvider'
 import { useSession } from './session/SessionContext'
 import { formatTtl, shortSessionId } from './lib/format'
@@ -13,6 +26,7 @@ import { formatTtl, shortSessionId } from './lib/format'
 function Shell() {
   const { sessionId, expiresAt, error, retrySession, isMintingSession, isLoading, clearSession } =
     useSession()
+  const [mainTab, setMainTab] = useState('chat')
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 md:px-8">
@@ -64,8 +78,29 @@ function Shell() {
           ) : null}
         </header>
 
-        <Tabs.Root defaultValue="overview" className="space-y-5">
-          <Tabs.List className="app-card inline-flex gap-2 p-2" aria-label="Main sections">
+        <Tabs.Root value={mainTab} onValueChange={setMainTab} className="space-y-5">
+          <Tabs.List className="app-card inline-flex flex-wrap gap-2 p-2" aria-label="Main sections">
+            <Tabs.Trigger
+              value="chat"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            >
+              <MessageSquare className="h-4 w-4" aria-hidden="true" />
+              Chat
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="vault"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            >
+              <FolderOpen className="h-4 w-4" aria-hidden="true" />
+              Vault
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value="settings"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+              Settings
+            </Tabs.Trigger>
             <Tabs.Trigger
               value="overview"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
@@ -95,6 +130,15 @@ function Shell() {
               My documents
             </Tabs.Trigger>
           </Tabs.List>
+          <Tabs.Content value="chat">
+            <ChatTab onNavigateVault={() => setMainTab('vault')} />
+          </Tabs.Content>
+          <Tabs.Content value="vault">
+            <VaultTab />
+          </Tabs.Content>
+          <Tabs.Content value="settings">
+            <SettingsTab />
+          </Tabs.Content>
           <Tabs.Content value="overview">
             <OverviewTab />
           </Tabs.Content>

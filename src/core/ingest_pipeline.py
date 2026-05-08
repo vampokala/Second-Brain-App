@@ -20,7 +20,9 @@ from src.api.models_ingest import IngestItemResult
 from src.api.sse_bus import SSEBus
 from src.core.bm25_index import BM25Index
 from src.core.document_processor import DocumentProcessor
+from src.core.log_appender import append_log
 from src.core.rag_orchestrator import COLLECTION_NAME
+from src.core.wiki_stub_writer import write_stub
 from src.db.models import EmbedQueue, IngestEvent, VaultFile
 from src.db.session import async_session_factory, get_sync_engine, sync_session_factory
 from src.utils.config import Config
@@ -287,6 +289,20 @@ class IngestPipeline:
             logger.exception("ingest failed %s", abs_path)
             return IngestItemResult(path=relpath_str, status="failed", chunk_count=0, error=str(exc))
 
+    async def _wiki_after_raw_md(self, abs_path: Path, relpath_str: str, out: IngestItemResult) -> None:
+        if out.status == "failed" or out.error == "duplicate":
+            return
+        rel = relpath_str.replace("\\", "/")
+        if not rel.lower().startswith("raw/") or not rel.lower().endswith(".md"):
+            return
+        summary = ""
+        try:
+            summary = await asyncio.to_thread(abs_path.read_text, encoding="utf-8", errors="replace")
+        except OSError:
+            pass
+        await write_stub(abs_path, self.settings.vault_path, summary)
+        await append_log(self.settings.vault_path, relpath_str)
+
     async def ingest_file(self, abs_path: Path) -> IngestItemResult:
         abs_path = abs_path.resolve()
         relpath_str = str(abs_path.relative_to(self._vault)).replace("\\", "/")
@@ -302,6 +318,8 @@ class IngestPipeline:
                 status,
                 {"chunk_count": out.chunk_count, "error": out.error},
             )
+            if status == "ingested":
+                await self._wiki_after_raw_md(abs_path, relpath_str, out)
             return out
 
     async def ingest_text(self, relpath: str, body: str) -> IngestItemResult:

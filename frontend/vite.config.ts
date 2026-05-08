@@ -22,6 +22,9 @@ export default defineConfig({
       '/events': { target: devApiTarget, changeOrigin: true },
       '/admin': { target: devApiTarget, changeOrigin: true },
       '/reindex': { target: devApiTarget, changeOrigin: true },
+      '/vault': { target: devApiTarget, changeOrigin: true },
+      '/chats': { target: devApiTarget, changeOrigin: true },
+      '/settings': { target: devApiTarget, changeOrigin: true },
     },
   },
   test: {
