@@ -1,0 +1,79 @@
+---
+description: Python-specific quality standards (typing, Ruff rule families, pytest patterns)
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python Quality
+
+## Typing
+
+- Type hints on every public function signature and return type.
+- Prefer `dataclass` / `pydantic.BaseModel` over raw `dict` for typed payloads.
+- Use `Protocol` for structural typing; `TypeAlias` for clarity; `Final` for module constants.
+- `from __future__ import annotations` at top of every module.
+- `mypy --strict` must pass.
+
+## Ruff Rule Families (enforced)
+
+`E,F,W,B,SIM,UP,S,RUF,I,N,D,PL,C4,PIE,RET,TCH,C90`
+
+Key violations to avoid:
+- `B008` mutable default args: use `None` and assign inside.
+- `B904` raise from: `raise NewError(...) from e` to preserve traceback.
+- `SIM117` merge nested `with`.
+- `S101` no `assert` in production code (use real checks).
+- `C901` McCabe cyclomatic complexity > 10.
+- `PLR0915` too many statements (> 50 per function).
+- `PLR0912` too many branches (> 12 per function).
+
+## Cognitive Complexity (xenon + radon)
+
+`ruff` covers cyclomatic; cognitive complexity is enforced by `xenon`:
+
+```bash
+xenon --max-absolute B --max-modules A --max-average A src
+```
+
+Roughly equivalent to cognitive complexity <= 15 per function. Run before pushing.
+
+## Error Handling
+
+```python
+# BAD
+try:
+    do_work()
+except Exception:
+    pass
+
+# BAD — too broad, no context
+try:
+    do_work()
+except Exception as e:
+    logger.error(e)
+
+# GOOD
+try:
+    do_work(order_id=order.id)
+except WorkerTimeout as e:
+    logger.error("work_timeout", extra={"order_id": order.id, "error": str(e)})
+    raise OrderProcessingError(f"timeout for order {order.id}") from e
+```
+
+- No bare `except:`. No `except Exception` unless you re-raise or it's the outermost handler.
+- Custom exception classes inherit from a domain base (`AppError`, `DomainError`).
+
+## Tests (pytest)
+
+- Files: `tests/test_<module>.py`. Functions: `test_<behavior>_when_<condition>`.
+- Use fixtures for setup. `conftest.py` for shared fixtures.
+- `pytest.mark.parametrize` for boundary tables.
+- Async: `pytest-asyncio` with `@pytest.mark.asyncio`.
+- Property-based: use `hypothesis` for pure functions.
+
+## Anti-Patterns
+
+- Do not use `*args, **kwargs` in public APIs without a typed alternative.
+- Do not catch and rewrap with no added value.
+- Do not use `os.path`; use `pathlib.Path`.
+- Do not use `datetime.now()` without `tz=`. Use `datetime.now(tz=UTC)`.

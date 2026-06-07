@@ -33,7 +33,7 @@ export function ScopeToggle({
             disabled={disabled}
             className={cn(
               'rounded-xl border p-4 text-left transition',
-              value === option.value ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white',
+              value === option.value ? 'border-primary bg-primary/10' : 'border-border bg-card',
               disabled && 'cursor-not-allowed opacity-50',
             )}
           >
@@ -41,12 +41,12 @@ export function ScopeToggle({
               <span
                 className={cn(
                   'h-4 w-4 rounded-full border',
-                  value === option.value ? 'border-blue-600 bg-blue-600' : 'border-slate-400',
+                  value === option.value ? 'border-primary bg-primary' : 'border-input',
                 )}
               />
-              <span className="font-medium text-slate-900">{option.label}</span>
+              <span className="font-medium text-foreground">{option.label}</span>
             </div>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               {disabled ? 'Upload a document to enable this scope.' : option.helper}
             </p>
           </RadioGroup.Item>

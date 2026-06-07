@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.key_validator import validate_key
 from src.db.models import AppSetting
 from src.db.session import get_async_session
@@ -79,11 +78,19 @@ async def update_settings(
         ok, msg = await validate_key(body.test_provider, key_str)
         if not ok:
             raise HTTPException(status_code=400, detail=msg)
+    existing_rows = await session.execute(select(AppSetting).where(AppSetting.key.in_(list(body.patch.keys()))))
+    existing_map = {r.key: r.value for r in existing_rows.scalars().all()}
     for k, v in body.patch.items():
         if k in _ENV_WINS and os.getenv(_ENV_WINS[k]):
             continue
         if k.endswith("_api_key") and not isinstance(v, dict):
             v = {"secret": v}
+        # For nested settings maps (e.g., default_model_by_provider), merge incrementally
+        # so callers can patch one provider without clobbering existing entries.
+        if isinstance(v, dict) and isinstance(existing_map.get(k), dict):
+            merged = dict(existing_map[k])
+            merged.update(v)
+            v = merged
         session.merge(AppSetting(key=k, value=json.loads(json.dumps(v))))
     await session.commit()
     return await get_settings(session)

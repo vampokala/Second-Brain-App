@@ -1,0 +1,17 @@
+# Hard-launch quality workflow (BLOCKING). Disabled during soft launch.
+# To enable: uncomment the trigger below and set soft_launch: false in .quality.yml
+name: quality
+
+on:
+  workflow_dispatch:
+  # Uncomment for hard launch:
+  # pull_request:
+  # push:
+  #   branches: [main]
+
+jobs:
+  quality-gate:
+    if: false  # placeholder until engineering-standards repo is published to GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Enable after hard launch — see Docs/QUALITY_SOFT_LAUNCH.md"

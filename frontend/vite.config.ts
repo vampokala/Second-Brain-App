@@ -25,6 +25,7 @@ export default defineConfig({
       '/vault': { target: devApiTarget, changeOrigin: true },
       '/chats': { target: devApiTarget, changeOrigin: true },
       '/settings': { target: devApiTarget, changeOrigin: true },
+      '/connectors': { target: devApiTarget, changeOrigin: true },
     },
   },
   test: {
@@ -32,5 +33,22 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     globals: true,
     include: ['src/**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'cobertura'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/api/generated.ts',
+      ],
+      thresholds: {
+        lines: 80,
+        branches: 70,
+        functions: 80,
+        statements: 80,
+      },
+    },
   },
 })

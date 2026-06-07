@@ -79,13 +79,13 @@ export function VaultTab() {
       <div className="md:col-span-4">
         <h2 className="mb-3 text-lg font-bold">Vault</h2>
         <input
-          className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          className="mb-2 w-full rounded-lg border border-border px-3 py-2 text-sm"
           placeholder="Filter paths…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {error ? <div className="text-sm text-red-600">{error}</div> : null}
-        <div className="h-80 overflow-hidden rounded-lg border border-slate-200">
+        {error ? <div className="text-sm text-destructive">{error}</div> : null}
+        <div className="h-80 overflow-hidden rounded-lg border border-border">
           {arborData.length ? (
             <Tree
               data={arborData}
@@ -104,25 +104,25 @@ export function VaultTab() {
               )}
             </Tree>
           ) : (
-            <div className="p-4 text-sm text-slate-500">No files (configure DATABASE_URL + vault).</div>
+            <div className="p-4 text-sm text-muted-foreground">No files (configure DATABASE_URL + vault).</div>
           )}
         </div>
       </div>
       <div className="md:col-span-8">
-        <div className="mb-2 text-sm font-medium text-slate-600">{selected || 'Select a file'}</div>
+        <div className="mb-2 text-sm font-medium text-muted-foreground">{selected || 'Select a file'}</div>
         {content?.frontmatter ? (
           <div className="mb-2">
-            <button type="button" className="text-xs font-semibold text-blue-600" onClick={() => setFmOpen(!fmOpen)}>
+            <button type="button" className="text-xs font-semibold text-primary" onClick={() => setFmOpen(!fmOpen)}>
               {fmOpen ? 'Hide' : 'Show'} frontmatter
             </button>
             {fmOpen ? (
-              <pre className="mt-1 max-h-40 overflow-auto rounded bg-slate-900 p-2 text-xs text-slate-100">
+              <pre className="mt-1 max-h-40 overflow-auto rounded bg-secondary p-2 text-xs text-foreground">
                 {JSON.stringify(content.frontmatter, null, 2)}
               </pre>
             ) : null}
           </div>
         ) : null}
-        <div className="rounded-lg border border-slate-100 bg-white p-4 text-sm">
+        <div className="rounded-lg border border-border bg-card p-4 text-sm">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content?.body || '_No file selected_'}</ReactMarkdown>
         </div>
       </div>

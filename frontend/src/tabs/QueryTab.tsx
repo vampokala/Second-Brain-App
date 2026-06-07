@@ -207,12 +207,12 @@ export function QueryTab() {
         />
 
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-700">Knowledge scope</p>
+          <p className="mb-2 text-sm font-medium text-foreground">Knowledge scope</p>
           <ScopeToggle value={scope} onChange={setScope} hasUploads={hasUploads} />
         </div>
 
         {llmConfigError ? (
-          <p className="text-sm text-red-700" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             Could not load model options from the API. Check that the server is running and try refreshing.
           </p>
         ) : null}
@@ -220,9 +220,9 @@ export function QueryTab() {
         {llmConfig ? (
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">Provider</span>
+              <span className="mb-2 block text-sm font-medium text-foreground">Provider</span>
               <select
-                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900 shadow-sm"
+                className="w-full rounded-xl border border-input bg-card p-3 text-foreground shadow-sm"
                 value={provider}
                 onChange={(e) => handleProviderChange(e.target.value)}
               >
@@ -234,9 +234,9 @@ export function QueryTab() {
               </select>
             </label>
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">Model</span>
+              <span className="mb-2 block text-sm font-medium text-foreground">Model</span>
               <select
-                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900 shadow-sm"
+                className="w-full rounded-xl border border-input bg-card p-3 text-foreground shadow-sm"
                 value={model}
                 onChange={(e) => setModelChoice(e.target.value)}
                 disabled={modelOptions.length === 0}
@@ -250,13 +250,13 @@ export function QueryTab() {
             </label>
           </div>
         ) : (
-          <p className="text-sm text-slate-600">{llmConfigLoading ? 'Loading model options…' : null}</p>
+          <p className="text-sm text-muted-foreground">{llmConfigLoading ? 'Loading model options…' : null}</p>
         )}
 
         {provider !== '' && provider !== 'ollama' && !isDemoMode ? (
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="space-y-3 rounded-xl border border-border bg-muted p-4">
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">
+              <span className="mb-2 block text-sm font-medium text-foreground">
                 {provider}
                 {' '}
                 API key
@@ -264,7 +264,7 @@ export function QueryTab() {
               <input
                 type="password"
                 autoComplete="off"
-                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900 shadow-sm"
+                className="w-full rounded-xl border border-input bg-card p-3 text-foreground shadow-sm"
                 placeholder={
                   serverProviderKeyConfigured
                     ? "Optional override: paste your own key for this request"
@@ -274,14 +274,14 @@ export function QueryTab() {
                 onChange={(e) => setProviderApiKeyDraft(e.target.value)}
               />
             </label>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-muted-foreground">
               {serverProviderKeyConfigured
                 ? `Server key is configured for ${provider}. ${
                     isDemoMode ? 'Demo users can query without providing a key.' : 'Your key is optional.'
                   }`
                 : `No server key configured for ${provider}. Provide your own key to run this provider.`}
             </p>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={rememberProviderKey}
@@ -292,11 +292,11 @@ export function QueryTab() {
           </div>
         ) : null}
         {provider !== '' && provider !== 'ollama' && isDemoMode ? (
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs text-slate-600">
+          <div className="space-y-3 rounded-xl border border-border bg-muted p-4">
+            <p className="text-xs text-muted-foreground">
               Demo mode uses server-side provider secrets by default.
             </p>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={useCustomProviderKey}
@@ -307,7 +307,7 @@ export function QueryTab() {
             {useCustomProviderKey ? (
               <>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-slate-700">
+                  <span className="mb-2 block text-sm font-medium text-foreground">
                     {provider}
                     {' '}
                     API key
@@ -315,13 +315,13 @@ export function QueryTab() {
                   <input
                     type="password"
                     autoComplete="off"
-                    className="w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900 shadow-sm"
+                    className="w-full rounded-xl border border-input bg-card p-3 text-foreground shadow-sm"
                     placeholder="Optional override: paste your key for this request"
                     value={providerApiKey}
                     onChange={(e) => setProviderApiKeyDraft(e.target.value)}
                   />
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
                   <input
                     type="checkbox"
                     checked={rememberProviderKey}
@@ -335,9 +335,9 @@ export function QueryTab() {
         ) : null}
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700">Question</span>
+          <span className="mb-2 block text-sm font-medium text-foreground">Question</span>
           <textarea
-            className="min-h-32 w-full rounded-xl border border-slate-300 p-3 text-slate-900 shadow-sm"
+            className="min-h-32 w-full rounded-xl border border-input p-3 text-foreground shadow-sm"
             placeholder="Ask a question about the sample corpus or your uploaded documents..."
             value={queryText}
             onChange={(event) => setQueryText(event.target.value)}
@@ -347,13 +347,13 @@ export function QueryTab() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
             disabled={runDisabled}
             onClick={() => void submit()}
           >
             {isStreaming || fallbackMutation.isPending ? 'Running...' : 'Run'}
           </button>
-          {message ? <p className="text-sm text-slate-700" aria-live="polite">{message}</p> : null}
+          {message ? <p className="text-sm text-foreground" aria-live="polite">{message}</p> : null}
         </div>
       </section>
 

@@ -1,0 +1,23 @@
+## Semgrep config — security + correctness scan.
+## Run locally:    semgrep ci
+## Run in CI:      see ci/github-actions/quality.yml (semgrep step)
+##
+## Semgrep replaces SonarQube's security category. Free CLI, free OSS rules.
+
+rules:
+  ## Use Semgrep's curated rulesets via "extends" syntax in semgrep.yml
+  ## (these references resolve when running `semgrep ci`)
+  - id: bootstrap-placeholder
+    pattern: this_pattern_never_matches_42
+    message: replace this with your repo-specific rules
+    severity: INFO
+    languages: [generic]
+
+## Recommended rulesets to enable from semgrep.dev (set in CI step):
+##   - p/security-audit
+##   - p/owasp-top-ten
+##   - p/cwe-top-25
+##   - p/python (or p/typescript / p/java / p/kotlin per stack)
+##   - p/secrets
+##
+## See ci/github-actions/quality.yml for the actual invocation.

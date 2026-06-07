@@ -1,0 +1,108 @@
+# Soft-launch quality workflow: runs OSS gates, uploads reports, does NOT block merge.
+# Pair with existing ci.yml. Flip to blocking when ready (see Docs/QUALITY_SOFT_LAUNCH.md).
+name: quality-soft
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quality-report:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install Python quality tools
+        run: |
+          pip install -r requirements/quality.txt -r requirements/base.txt
+          pip install pytest pytest-cov types-PyYAML types-beautifulsoup4 types-requests
+
+      - name: Ruff lint
+        run: ruff check src tests
+
+      - name: Bandit security
+        run: bandit -q -ll -r src
+
+      - name: Xenon cognitive complexity
+        run: xenon --max-absolute B --max-modules A --max-average A src || true
+
+      - name: Pytest + coverage
+        run: pytest tests/unit/ --cov=src --cov-report=xml --cov-branch -q || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: ESLint + sonarjs
+        working-directory: frontend
+        run: npm run lint || true
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npm run typecheck || true
+
+      - name: Vitest + coverage
+        working-directory: frontend
+        run: npm run test:coverage || true
+
+      - name: Semgrep (security)
+        run: |
+          pip install semgrep
+          semgrep --config=p/security-audit --config=p/secrets --config=p/python --sarif --output semgrep.sarif . || true
+
+      - name: jscpd (duplication)
+        run: npx -y jscpd@4 --threshold 3 --reporters markdown --output jscpd-report --gitignore . || true
+
+      - name: Diff-coverage report (advisory)
+        run: |
+          pip install diff-cover
+          if [ -f coverage.xml ]; then
+            diff-cover coverage.xml --compare-branch=origin/${{ github.base_ref || 'main' }} --fail-under=80 \
+              --markdown-report diff-coverage.md || true
+          fi
+
+      - name: Post diff-coverage comment
+        if: github.event_name == 'pull_request' && hashFiles('diff-coverage.md') != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: quality-soft-launch
+          path: diff-coverage.md
+
+      - name: Upload quality artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-soft-report
+          path: |
+            diff-coverage.md
+            coverage.xml
+            jscpd-report/
+            semgrep.sarif
+          if-no-files-found: ignore
+
+      - name: Soft launch summary
+        if: always()
+        run: |
+          echo "## Quality soft launch (non-blocking)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow reports findings only. Merge is not blocked." >> "$GITHUB_STEP_SUMMARY"
+          echo "When ready for hard launch: set \`soft_launch: false\` in \`.quality.yml\`." >> "$GITHUB_STEP_SUMMARY"
+          echo "See \`Docs/QUALITY_SOFT_LAUNCH.md\`." >> "$GITHUB_STEP_SUMMARY"

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('chat tab', () => {
-  test('shows Chat heading', async ({ page }) => {
+  test('shows Chat toggle in the top bar', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Chat' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Chat' })).toBeVisible()
   })
 })

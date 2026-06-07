@@ -7,11 +7,11 @@ async function mockLlmConfig(page: Page) {
         default_provider: 'ollama',
         default_model_by_provider: {
           ollama: 'qwen2.5:7b',
-          openai: 'gpt-4o-mini',
+          openai: 'gpt-5.4-mini',
         },
         allowed_models_by_provider: {
           ollama: ['qwen2.5:7b'],
-          openai: ['gpt-4o-mini'],
+          openai: ['gpt-5.4-mini'],
         },
         provider_key_configured: {
           ollama: true,
@@ -51,7 +51,7 @@ test('no uploads keeps Mine and Both disabled', async ({ page }) => {
   })
 
   await page.goto('/')
-  await page.getByRole('tab', { name: 'Query' }).click()
+  await page.getByRole('tab', { name: 'Quick ask' }).click()
   await expect(page.getByRole('radio', { name: /my uploads only/i })).toBeDisabled()
   await expect(page.getByRole('radio', { name: /both/i })).toBeDisabled()
 })
@@ -78,7 +78,7 @@ test('query streams an answer', async ({ page }) => {
   })
 
   await page.goto('/')
-  await page.getByRole('tab', { name: 'Query' }).click()
+  await page.getByRole('tab', { name: 'Quick ask' }).click()
   await page.getByRole('textbox', { name: /question/i }).fill('What is RAG?')
   await page.getByRole('button', { name: 'Run' }).click()
   await expect(page.getByText('Hello from stream')).toBeVisible()

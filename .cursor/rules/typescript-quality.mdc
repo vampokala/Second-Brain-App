@@ -1,0 +1,88 @@
+---
+description: TypeScript-specific quality standards (strict types, error subclasses, React hooks)
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript Quality
+
+## Type Safety
+
+- `tsconfig.json` must have `"strict": true`, `"noUncheckedIndexedAccess": true`, `"exactOptionalPropertyTypes": true`.
+- **Never use `any`**. If you truly need it, use `unknown` and narrow.
+- Branded types for IDs: `type UserId = string & { readonly __brand: "UserId" }`.
+- Discriminated unions for state: `type Result<T> = { ok: true; value: T } | { ok: false; error: AppError }`.
+- Avoid type assertions (`as Foo`). If unavoidable, add a runtime guard.
+
+## Required ESLint plugins
+
+These are non-negotiable in `eslint.config.js` / `.eslintrc.*`:
+
+- `@typescript-eslint/eslint-plugin` — strict TS rules
+- `eslint-plugin-sonarjs` — SonarSource's open-source rules (cognitive complexity, duplicate-string, identical-functions, prefer-immediate-return, etc.) Brings SonarQube's quality rules into the IDE without a Sonar server.
+- `eslint-plugin-unicorn` — modern JS best practices
+- `eslint-plugin-promise` — Promise hygiene
+
+Key SonarJS rules that block:
+- `sonarjs/cognitive-complexity` — max 15
+- `sonarjs/no-duplicate-string` — 3+ identical strings = extract const
+- `sonarjs/no-identical-functions`
+- `sonarjs/no-nested-template-literals`
+- `sonarjs/prefer-immediate-return`
+
+## Error Handling
+
+```typescript
+// BAD
+try {
+  await fetchOrder(id);
+} catch (e) {}
+
+// BAD — Error type is lost
+catch (e: any) { logger.error(e.message); }
+
+// GOOD
+class OrderFetchError extends AppError {
+  constructor(public readonly orderId: string, cause: unknown) {
+    super(`Failed to fetch order ${orderId}`, { cause });
+  }
+}
+
+try {
+  return await fetchOrder(id);
+} catch (cause) {
+  logger.error("order_fetch_failed", { orderId: id, cause });
+  throw new OrderFetchError(id, cause);
+}
+```
+
+- All custom errors extend a single `AppError` base with `cause` and structured context.
+- Never throw strings or plain objects. Only `Error` subclasses.
+
+## React (`.tsx`)
+
+- Functional components only. No class components.
+- Hook dependency arrays must be exhaustive (ESLint `react-hooks/exhaustive-deps`).
+- Extract custom hooks for any logic reused across components.
+- Memoize only with measured benefit (`React.memo`, `useMemo`, `useCallback` are not free).
+- Server state belongs in TanStack Query or equivalent, not `useState`.
+
+## Async
+
+- Always `await` promises. No floating promises (ESLint `@typescript-eslint/no-floating-promises`).
+- Use `Promise.all` for independent work; never `await` in a loop unless the order matters.
+- Handle abort signals for cancellable operations.
+
+## Tests (Vitest / Jest)
+
+- Files: `*.test.ts` colocated with source or in `__tests__/`.
+- Use `describe` for the unit under test, `it`/`test` for behavior.
+- `expect(fn).toThrow(SpecificError)` — assert error type, not just that something threw.
+- Property-based: `fast-check` for pure functions.
+
+## Anti-Patterns
+
+- No `// @ts-ignore` / `// @ts-expect-error` without a JIRA ticket comment.
+- No `Function` type. Use specific signatures.
+- No `Object` type. Use `Record<string, unknown>` or a proper interface.
+- No default exports for components. Named exports only — better refactoring and search.

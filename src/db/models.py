@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -34,14 +34,14 @@ class Chat(Base):
     __tablename__ = "chats"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
-    system_prompt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     provider: Mapped[str] = mapped_column(String(64), default="ollama")
     model: Mapped[str] = mapped_column(String(128), default="llama3.1:8b")
     knowledge_scope: Mapped[str] = mapped_column(String(32), default="vault")
-    summary_cache: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    active_leaf_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+    summary_cache: Mapped[str | None] = mapped_column(Text, nullable=True)
+    active_leaf_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("messages.id", ondelete="SET NULL"), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
@@ -49,7 +49,7 @@ class Chat(Base):
         DateTime(timezone=True), server_default=text("now()"), onupdate=text("now()")
     )
 
-    messages: Mapped[list["Message"]] = relationship(
+    messages: Mapped[list[Message]] = relationship(
         "Message", back_populates="chat", cascade="all, delete-orphan", foreign_keys="Message.chat_id"
     )
 
@@ -61,18 +61,16 @@ class Message(Base):
     chat_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chats.id", ondelete="CASCADE"))
     role: Mapped[str] = mapped_column(String(32))
     content: Mapped[str] = mapped_column(Text)
-    parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("messages.id"), nullable=True
-    )
-    search_vector: Mapped[Optional[Any]] = mapped_column(TSVECTOR, nullable=True)
-    provider: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    model: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
-    elapsed_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    feedback: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("messages.id"), nullable=True)
+    search_vector: Mapped[Any | None] = mapped_column(TSVECTOR, nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    elapsed_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    feedback: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
-    chat: Mapped["Chat"] = relationship("Chat", back_populates="messages", foreign_keys=[chat_id])
-    citations: Mapped[list["MessageCitation"]] = relationship(
+    chat: Mapped[Chat] = relationship("Chat", back_populates="messages", foreign_keys=[chat_id])
+    citations: Mapped[list[MessageCitation]] = relationship(
         "MessageCitation", back_populates="message", cascade="all, delete-orphan"
     )
 
@@ -87,10 +85,10 @@ class MessageCitation(Base):
     )
     chunk_id: Mapped[str] = mapped_column(String(256), primary_key=True)
     source: Mapped[str] = mapped_column(Text)
-    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    message: Mapped["Message"] = relationship("Message", back_populates="citations")
+    message: Mapped[Message] = relationship("Message", back_populates="citations")
 
 
 class AppSetting(Base):
@@ -107,9 +105,9 @@ class EmbedQueue(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     file_path: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(32), default="pending")
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
-    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class IngestEvent(Base):
@@ -119,7 +117,7 @@ class IngestEvent(Base):
     file_path: Mapped[str] = mapped_column(Text)
     event_type: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(32))
-    details: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
 
@@ -127,14 +125,14 @@ class VaultFile(Base):
     __tablename__ = "vault_files"
 
     path: Mapped[str] = mapped_column(Text, primary_key=True)
-    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    section: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    file_type: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    tags: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
-    mtime: Mapped[Optional[float]] = mapped_column(Integer, nullable=True)
-    size_bytes: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    chunk_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    last_indexed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    section: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    mtime: Mapped[float | None] = mapped_column(Integer, nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    chunk_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class BM25Snapshot(Base):
@@ -155,12 +153,12 @@ class DocumentChunk(Base):
     source_path: Mapped[str] = mapped_column(Text, nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, default=0)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    heading: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    section: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    file_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    tags: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
-    extra_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, nullable=True)
-    embedding: Mapped[Optional[Any]] = mapped_column(Vector(768), nullable=True)
+    heading: Mapped[str | None] = mapped_column(Text, nullable=True)
+    section: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    tags: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    extra_metadata: Mapped[dict | None] = mapped_column("metadata", JSONB, nullable=True)
+    embedding: Mapped[Any | None] = mapped_column(Vector(768), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
     __table_args__ = (
@@ -173,6 +171,35 @@ class DocumentChunk(Base):
         ),
         Index("ix_document_chunks_source", "source_path"),
     )
+
+
+class ConnectorSyncState(Base):
+    """One configured external source (GitHub repo, JIRA project, Confluence space).
+
+    Secrets are never stored here — ``config`` only holds a ``token_env`` pointer
+    to the environment variable that supplies the credential at sync time.
+    """
+
+    __tablename__ = "connector_sync_state"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    connector_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    resource_id: Mapped[str] = mapped_column(Text, nullable=False)
+    config: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    cursor: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    # Per-connector auto-sync cadence in minutes; NULL/0 = manual only.
+    sync_interval_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    item_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()"), onupdate=text("now()")
+    )
+
+    __table_args__ = (Index("ux_connector_type_resource", "connector_type", "resource_id", unique=True),)
 
 
 # NOTE: do not append stray imports below; keep models self-contained.

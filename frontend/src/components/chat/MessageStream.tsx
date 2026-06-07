@@ -22,9 +22,9 @@ export function MessageStream({ messages, streaming, onOpenVault }: Props) {
       {messages.map((m) => (
         <div
           key={m.id}
-          className={`rounded-xl p-3 ${m.role === 'user' ? 'ml-8 bg-slate-100' : 'mr-8 bg-white shadow-sm'}`}
+          className={`rounded-xl p-3 ${m.role === 'user' ? 'ml-8 bg-secondary' : 'mr-8 bg-card shadow-sm'}`}
         >
-          <div className="mb-1 text-xs font-semibold uppercase text-slate-500">{m.role}</div>
+          <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{m.role}</div>
           <div className="prose prose-sm max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
           </div>
@@ -43,8 +43,8 @@ export function MessageStream({ messages, streaming, onOpenVault }: Props) {
         </div>
       ))}
       {streaming ? (
-        <div className="mr-8 rounded-xl bg-white p-3 shadow-sm">
-          <div className="mb-1 text-xs font-semibold uppercase text-slate-500">assistant</div>
+        <div className="mr-8 rounded-xl bg-card p-3 shadow-sm">
+          <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">assistant</div>
           <div className="prose prose-sm max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{streaming}</ReactMarkdown>
           </div>

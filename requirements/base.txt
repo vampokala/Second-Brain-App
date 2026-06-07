@@ -32,7 +32,7 @@ bert-score>=0.3.13
 sacrebleu>=2.3.0
 
 # Phase 5: observability & monitoring
-langfuse>=2.0.0
+langsmith>=0.1.0
 
 # Second-Brain-App: Postgres + pgvector + ingest stack
 pydantic-settings>=2.0

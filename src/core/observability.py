@@ -1,20 +1,57 @@
 """
 Observability layer for RAG pipeline instrumentation.
-Provides decorators and context managers for LangFuse tracing.
+Provides decorators and context managers for LangSmith tracing.
 """
 
 import logging
 import os
 import time
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any
 
 try:
-    from langfuse import Langfuse as _Langfuse
+    from langsmith import Client as _LangSmithClient
+    from langsmith.run_trees import RunTree as _LangSmithRunTree
 except ImportError:
-    _Langfuse = None
+    _LangSmithClient = None
+    _LangSmithRunTree = None
 
 logger = logging.getLogger(__name__)
+
+
+class _LangSmithTrace:
+    """Small adapter that exposes span/update methods used by the orchestrator."""
+
+    def __init__(self, run: Any):
+        self._run = run
+        self._ended = False
+
+    def span(self, name: str, input: dict[str, Any] | None = None):
+        child = self._run.create_child(
+            name=name,
+            run_type="tool",
+            inputs=input or {},
+        )
+        child.post()
+        return _LangSmithTrace(child)
+
+    def update(
+        self,
+        output: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        if self._ended:
+            return
+        self._run.end(outputs=output or {}, extra={"metadata": metadata or {}})
+        self._run.patch()
+        self._ended = True
+
+    def end(
+        self,
+        output: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        self.update(output=output, metadata=metadata)
 
 
 class RAGObserver:
@@ -32,40 +69,35 @@ class RAGObserver:
     def __init__(
         self,
         enabled: bool = True,
-        public_key: Optional[str] = None,
-        secret_key: Optional[str] = None,
+        api_key: str | None = None,
     ):
         """
         Args:
             enabled: If False, all tracing is no-op (demo mode, tests)
-            public_key: LangFuse public key (defaults to LANGFUSE_PUBLIC_KEY env var)
-            secret_key: LangFuse secret key (defaults to LANGFUSE_SECRET_KEY env var)
+            api_key: LangSmith API key (defaults to LANGCHAIN_API_KEY env var)
         """
         self.enabled = enabled
         self.client: Any | None = None
 
         if self.enabled:
-            if _Langfuse is None:
-                logger.warning("langfuse package not installed; observability disabled")
+            if _LangSmithClient is None or _LangSmithRunTree is None:
+                logger.warning("langsmith package not installed; observability disabled")
                 self.enabled = False
                 return
 
             try:
-                resolved_public_key = public_key or os.getenv("LANGFUSE_PUBLIC_KEY")
-                resolved_secret_key = secret_key or os.getenv("LANGFUSE_SECRET_KEY")
-
-                if resolved_public_key and resolved_secret_key:
-                    self.client = _Langfuse(
-                        public_key=resolved_public_key,
-                        secret_key=resolved_secret_key,
-                        host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+                resolved_api_key = (api_key or os.getenv("LANGCHAIN_API_KEY") or "").strip()
+                if resolved_api_key:
+                    self.client = _LangSmithClient(
+                        api_key=resolved_api_key,
+                        api_url=os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"),
                     )
-                    logger.info("LangFuse observability enabled")
+                    logger.info("LangSmith observability enabled")
                 else:
                     self.enabled = False
-                    logger.warning("LangFuse keys not found; observability disabled")
+                    logger.warning("LANGCHAIN_API_KEY not found; observability disabled")
             except Exception as e:
-                logger.error(f"Failed to initialize LangFuse: {e}; observability disabled")
+                logger.error(f"Failed to initialize LangSmith: {e}; observability disabled")
                 self.enabled = False
 
     @contextmanager
@@ -73,7 +105,7 @@ class RAGObserver:
         self,
         name: str,
         query: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """
         Context manager for a top-level request trace.
@@ -93,22 +125,28 @@ class RAGObserver:
             yield None
             return
 
-        trace = self.client.trace(
+        project_name = (os.getenv("LANGCHAIN_PROJECT") or "default").strip() or "default"
+        trace = _LangSmithRunTree(
             name=name,
-            input={"query": query},
-            metadata=metadata or {},
+            run_type="chain",
+            inputs={"query": query},
+            extra={"metadata": metadata or {}},
+            project_name=project_name,
+            client=self.client,
         )
+        trace.post()
+        trace_adapter = _LangSmithTrace(trace)
         start = time.time()
         try:
-            yield trace
+            yield trace_adapter
         except Exception as e:
-            trace.update(
+            trace_adapter.update(
                 output={"error": str(e)},
                 metadata={**(metadata or {}), "total_ms": (time.time() - start) * 1000},
             )
             raise
         finally:
-            trace.update(
+            trace_adapter.update(
                 metadata={**(metadata or {}), "total_ms": round((time.time() - start) * 1000, 2)},
             )
 
@@ -117,7 +155,7 @@ class RAGObserver:
         self,
         trace,
         step_name: str,
-        input_data: Optional[Dict[str, Any]] = None,
+        input_data: dict[str, Any] | None = None,
     ):
         """
         Context manager for a child span within a request trace.
@@ -128,7 +166,7 @@ class RAGObserver:
             step_name: Name of the pipeline step (e.g. "retrieval", "generation")
             input_data: Optional input metadata for this step
         """
-        output: Dict[str, Any] = {}
+        output: dict[str, Any] = {}
         start = time.time()
 
         if not self.enabled or trace is None:
@@ -153,27 +191,18 @@ class RAGObserver:
 
     def flush_async(self) -> None:
         """
-        Flush pending traces to LangFuse in a background thread.
-        Call this after the HTTP response is sent — never block the hot path.
-
-        In FastAPI, use a BackgroundTask:
-            from fastapi import BackgroundTasks
-            background_tasks.add_task(observer.flush_async)
+        LangSmith posts runs eagerly; no explicit flush is required.
+        Kept as a no-op to preserve call sites.
         """
-        if not self.client:
-            return
-        import threading
-
-        threading.Thread(target=self.client.flush, daemon=True).start()
+        return
 
     def flush(self) -> None:
-        """Synchronous flush — only use in shutdown/test contexts, not request handlers."""
-        if self.client:
-            self.client.flush()
+        """No-op for LangSmith-backed observer."""
+        return
 
 
 # Global observer instance
-_observer_instance: Optional[RAGObserver] = None
+_observer_instance: RAGObserver | None = None
 
 
 def get_observer() -> RAGObserver:

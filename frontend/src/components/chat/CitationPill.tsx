@@ -10,12 +10,12 @@ export function CitationPill({ source, label, onOpenVault }: Props) {
   return (
     <button
       type="button"
-      className="mr-1 inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-800 hover:bg-slate-300"
+      className="mr-1 inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground hover:bg-secondary/70"
       onClick={() => {
         if (onOpenVault) onOpenVault(source)
       }}
     >
-      <span className="text-[10px] uppercase text-slate-500">[{kind}]</span>
+      <span className="text-[10px] uppercase text-muted-foreground">[{kind}]</span>
       <span className="max-w-[12rem] truncate">{text}</span>
     </button>
   )

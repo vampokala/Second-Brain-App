@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
+import { Button } from '../components/ui/button'
 import { chatsClient } from '../api/chatsClient'
+import { fetchLlmConfig } from '../api/client'
+import type { LlmConfigModel } from '../api/generated'
 import { streamChatPost } from '../lib/streamChat'
 import { vaultPathQuery } from '../lib/vaultDeepLink'
 import { useChatStore } from '../state/useChatStore'
@@ -8,6 +13,23 @@ import { ChatHeader } from '../components/chat/ChatHeader'
 import { Composer } from '../components/chat/Composer'
 import { ConversationList } from '../components/chat/ConversationList'
 import { MessageStream } from '../components/chat/MessageStream'
+
+function pickDefaultChatProvider(cfg: LlmConfigModel): string {
+  const keys = Object.keys(cfg.allowed_models_by_provider)
+  const isUsable = (p: string) =>
+    (cfg.allowed_models_by_provider[p]?.length ?? 0) > 0 && cfg.provider_key_configured[p] === true
+  if (isUsable(cfg.default_provider)) return cfg.default_provider
+  const usable = keys.find(isUsable)
+  if (usable) return usable
+  return keys.includes(cfg.default_provider) ? cfg.default_provider : keys[0] ?? 'ollama'
+}
+
+function pickDefaultChatModel(cfg: LlmConfigModel, provider: string): string {
+  const models = cfg.allowed_models_by_provider[provider] ?? []
+  const def = cfg.default_model_by_provider[provider]
+  if (def && models.includes(def)) return def
+  return models[0] ?? ''
+}
 
 type Props = {
   onNavigateVault?: () => void
@@ -30,7 +52,24 @@ export function ChatTab({ onNavigateVault }: Props) {
     setError,
   } = useChatStore()
   const [searchQ, setSearchQ] = useState('')
-  const [_header, setHeader] = useState({ provider: 'ollama', model: 'qwen2.5:7b', scope: 'vault' })
+  const [showList, setShowList] = useState(true)
+  const [_header, setHeader] = useState({ provider: '', model: '', scope: 'vault' })
+  const [headerSeeded, setHeaderSeeded] = useState(false)
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null)
+
+  const { data: llmConfig } = useQuery({
+    queryKey: ['llm-config'],
+    queryFn: fetchLlmConfig,
+    staleTime: Infinity,
+  })
+
+  useEffect(() => {
+    if (headerSeeded || !llmConfig) return
+    const provider = pickDefaultChatProvider(llmConfig)
+    const model = pickDefaultChatModel(llmConfig, provider)
+    setHeader((h) => ({ ...h, provider, model }))
+    setHeaderSeeded(true)
+  }, [llmConfig, headerSeeded])
 
   const refreshList = useCallback(async () => {
     try {
@@ -93,11 +132,13 @@ export function ChatTab({ onNavigateVault }: Props) {
   }, [searchQ, refreshList, setChats])
 
   async function newChat() {
+    const provider = _header.provider || 'ollama'
+    const model = _header.model || 'qwen2.5:7b'
     try {
       const d = await chatsClient.create({
         knowledge_scope: _header.scope,
-        provider: _header.provider,
-        model: _header.model,
+        provider,
+        model,
       })
       setActive(d.id)
       setDetail(d)
@@ -106,6 +147,66 @@ export function ChatTab({ onNavigateVault }: Props) {
       setError((e as Error).message)
     }
   }
+
+  const handleDeleteChat = useCallback(
+    async (id: string) => {
+      const target = chats.find((c) => c.id === id)
+      const label = target?.title?.trim() || 'Untitled'
+      const confirmed = window.confirm(`Delete chat "${label}"? This cannot be undone.`)
+      if (!confirmed) return
+      setDeletingChatId(id)
+      setError(null)
+      try {
+        await chatsClient.remove(id)
+        if (activeId === id) {
+          setActive(null)
+          setDetail(null)
+        }
+        await refreshList()
+      } catch (e) {
+        setError((e as Error).message)
+      } finally {
+        setDeletingChatId(null)
+      }
+    },
+    [activeId, chats, refreshList, setActive, setDetail, setError],
+  )
+
+  const handleProviderModelChange = useCallback(
+    async (p: string, m: string) => {
+      setHeader((h) => ({ ...h, provider: p, model: m }))
+      if (!activeId || !detail) return
+      const previous = detail
+      setDetail({ ...detail, provider: p, model: m })
+      try {
+        const updated = await chatsClient.patch(activeId, { provider: p, model: m })
+        setDetail(updated)
+        await refreshList()
+      } catch (e) {
+        setDetail(previous)
+        setError((e as Error).message)
+      }
+    },
+    [activeId, detail, setDetail, refreshList, setError],
+  )
+
+  const handleScopeToggle = useCallback(
+    async (s: string) => {
+      setHeader((h) => ({ ...h, scope: s }))
+      if (!activeId || !detail) return
+      const previous = detail
+      setDetail({ ...detail, knowledge_scope: s })
+      try {
+        const updated = await chatsClient.patch(activeId, { knowledge_scope: s })
+        setDetail(updated)
+        await refreshList()
+      } catch (e) {
+        setDetail(previous)
+        setError((e as Error).message)
+      }
+    },
+    [activeId, detail, setDetail, refreshList, setError],
+  )
 
   async function sendMessage(text: string) {
     if (!activeId || !detail) return
@@ -154,29 +255,53 @@ export function ChatTab({ onNavigateVault }: Props) {
   }
 
   return (
-    <div className="app-card flex min-h-[28rem] flex-col gap-4 p-5">
-      <h2 className="text-lg font-bold text-slate-900">Chat</h2>
-      {error ? <div className="rounded-lg bg-amber-50 p-2 text-sm text-amber-900">{error}</div> : null}
-      <ChatHeader
-        provider={detail?.provider || _header.provider}
-        model={detail?.model || _header.model}
-        scope={detail?.knowledge_scope || _header.scope}
-        onProviderModelChange={(p, m) => setHeader((h) => ({ ...h, provider: p, model: m }))}
-        onScopeToggle={(s) => setHeader((h) => ({ ...h, scope: s }))}
-      />
-      <div className="grid min-h-[22rem] flex-1 grid-cols-1 gap-4 md:grid-cols-12">
-        <div className="md:col-span-4">
-          <ConversationList
-            chats={chats}
-            activeId={activeId}
-            onSelect={(id) => setActive(id)}
-            onNew={() => void newChat()}
-            searchQuery={searchQ}
-            onSearchChange={setSearchQ}
+    <div className="app-card flex h-full flex-col gap-3 p-4">
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden md:inline-flex"
+          onClick={() => setShowList((s) => !s)}
+          aria-label={showList ? 'Hide conversations' : 'Show conversations'}
+          title={showList ? 'Hide conversations' : 'Show conversations'}
+        >
+          {showList ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        </Button>
+        <div className="min-w-0 flex-1">
+          <ChatHeader
+            provider={detail?.provider || _header.provider}
+            model={detail?.model || _header.model}
+            scope={detail?.knowledge_scope || _header.scope}
+            allowedModelsByProvider={llmConfig?.allowed_models_by_provider}
+            defaultModelByProvider={llmConfig?.default_model_by_provider}
+            providerKeyConfigured={llmConfig?.provider_key_configured}
+            onProviderModelChange={handleProviderModelChange}
+            onScopeToggle={handleScopeToggle}
           />
         </div>
-        <div className="flex flex-col gap-3 md:col-span-8">
-          <div className="min-h-[12rem] flex-1 rounded-xl border border-slate-100 bg-slate-50 p-3">
+      </div>
+      <div className="flex min-h-0 flex-1 gap-3">
+        {showList ? (
+          <div className="hidden w-72 shrink-0 md:block">
+            <ConversationList
+              chats={chats}
+              activeId={activeId}
+              onSelect={(id) => setActive(id)}
+              onNew={() => void newChat()}
+              onDelete={(id) => void handleDeleteChat(id)}
+              deletingId={deletingChatId}
+              searchQuery={searchQ}
+              onSearchChange={setSearchQ}
+            />
+          </div>
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border bg-secondary/40 p-3">
             <MessageStream
               messages={detail?.messages || []}
               streaming={streamText || undefined}

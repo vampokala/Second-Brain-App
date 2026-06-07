@@ -10,7 +10,6 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from src.db.models import Base
 
 config = context.config
@@ -23,7 +22,7 @@ target_metadata = Base.metadata
 def get_url() -> str:
     return os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://secondbrain:localdev@localhost:5432/secondbrain",
+        "postgresql+asyncpg://secondbrain:localdev@localhost:5433/secondbrain",
     )
 
 

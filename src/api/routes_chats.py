@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from sse_starlette.sse import EventSourceResponse
-
 from src.api.models_chats import (
     ChatCreateBody,
     ChatDetailDTO,
@@ -22,6 +21,7 @@ from src.api.models_chats import (
 from src.core.chat_orchestrator import ChatOrchestrator
 from src.core.chat_store import ChatStore, NewMessage
 from src.core.title_generator import generate_title
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +198,7 @@ async def post_message(chat_id: uuid.UUID, body: SendMessageBody, request: Reque
             if first_user:
                 title = await generate_title(body.message, provider, model)
                 await store.update_chat(chat_id, title=title)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("chat stream failed")
             yield {"event": "error", "data": json.dumps({"message": str(exc)})}
 
@@ -241,14 +241,16 @@ async def regenerate(chat_id: uuid.UUID, message_id: uuid.UUID, request: Request
                 anchor_user_message_id=user_id,
             ):
                 yield {"event": evt["event"], "data": json.dumps(evt["data"])}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             yield {"event": "error", "data": json.dumps({"message": str(exc)})}
 
     return EventSourceResponse(gen())
 
 
 @router.post("/{chat_id}/messages/{message_id}/edit")
-async def edit_fork(chat_id: uuid.UUID, message_id: uuid.UUID, body: EditMessageBody, request: Request) -> EventSourceResponse:
+async def edit_fork(
+    chat_id: uuid.UUID, message_id: uuid.UUID, body: EditMessageBody, request: Request
+) -> EventSourceResponse:
     store = _store(request)
     orch = _orch(request)
     m = await store.get_message(message_id)
@@ -278,7 +280,7 @@ async def edit_fork(chat_id: uuid.UUID, message_id: uuid.UUID, body: EditMessage
                 anchor_user_message_id=new_m.id,
             ):
                 yield {"event": evt["event"], "data": json.dumps(evt["data"])}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             yield {"event": "error", "data": json.dumps({"message": str(exc)})}
 
     return EventSourceResponse(gen())

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/lint-on-edit.sh",
+        "timeout": 30
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/gate-git-commit.sh",
+        "matcher": "git\\s+(commit|push)",
+        "timeout": 120,
+        "failClosed": true
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": ".cursor/hooks/quality-loop.sh",
+        "matcher": "generalPurpose|shell|best-of-n-runner",
+        "timeout": 180,
+        "loop_limit": 3
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": ".cursor/hooks/policy-reminder.sh",
+        "timeout": 5
+      }
+    ]
+  }
+}

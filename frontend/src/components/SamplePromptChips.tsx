@@ -8,13 +8,13 @@ const prompts = [
 export function SamplePromptChips({ onSelect }: { onSelect: (prompt: string) => void }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-medium text-slate-700">Try a sample</p>
+      <p className="mb-2 text-sm font-medium text-foreground">Try a sample</p>
       <div className="flex flex-wrap gap-2">
         {prompts.map((prompt) => (
           <button
             key={prompt}
             type="button"
-            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm hover:border-blue-300 hover:text-blue-700"
+            className="rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm hover:border-primary hover:text-primary"
             onClick={() => onSelect(prompt)}
           >
             {prompt}

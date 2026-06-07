@@ -9,9 +9,8 @@ from typing import Any
 
 import frontmatter
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.models_vault import FileContent, FileNode, FileTree, VaultStats
 from src.db.models import DocumentChunk, IngestEvent, VaultFile
 from src.db.session import get_async_session
@@ -100,7 +99,9 @@ def _build_tree(paths: list[str], prefix: str, max_depth: int) -> list[FileNode]
     return emit("", trie)
 
 
-async def _refresh_vault_rows(session: AsyncSession, vault: Path, base_pref: str, filter_q: str | None, limit: int) -> None:
+async def _refresh_vault_rows(
+    session: AsyncSession, vault: Path, base_pref: str, filter_q: str | None, limit: int
+) -> None:
     root = vault / base_pref if base_pref else vault
     if not root.is_dir():
         return
@@ -161,6 +162,20 @@ async def list_files(
     q = q.order_by(VaultFile.path.asc()).limit(limit)
     res = await session.execute(q)
     paths = [row[0] for row in res.all()]
+
+    # Keep cache and filesystem in sync: prune stale rows for deleted files.
+    # This avoids showing paths that no longer exist under /vault/raw or /vault/wiki.
+    if paths and vault.is_dir():
+        stale: list[str] = []
+        for p in paths:
+            abs_p = _resolve_safe(vault, p)
+            if not abs_p.is_file():
+                stale.append(p)
+        if stale:
+            await session.execute(delete(VaultFile).where(VaultFile.path.in_(stale)))
+            await session.commit()
+            res = await session.execute(q)
+            paths = [row[0] for row in res.all()]
 
     if (refresh or not paths) and vault.is_dir():
         await _refresh_vault_rows(session, vault, pref_raw, filter_q, limit)

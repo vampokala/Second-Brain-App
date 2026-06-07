@@ -5,10 +5,10 @@ Second Brain: vault path, Postgres URL, and vector backend are read from
 environment via ``src.utils.sb_env.load_second_brain_settings()`` when
 ``DATABASE_URL`` is set.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Optional
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError
@@ -93,20 +93,20 @@ class GenerationSettings(BaseModel):
 
 class LLMSettings(BaseModel):
     default_provider: str = Field("ollama", description="Default provider: ollama/openai/anthropic/gemini")
-    default_model_by_provider: Dict[str, str] = Field(
+    default_model_by_provider: dict[str, str] = Field(
         default_factory=lambda: {
             "ollama": "qwen2.5:7b",
-            "openai": "gpt-4o-mini",
+            "openai": "gpt-5.4-mini",
             "anthropic": "claude-sonnet-4-6",
-            "gemini": "gemini-2.5-flash",
+            "gemini": "gemini-3.1-flash-lite",
         }
     )
-    allowed_models_by_provider: Dict[str, List[str]] = Field(
+    allowed_models_by_provider: dict[str, list[str]] = Field(
         default_factory=lambda: {
             "ollama": ["qwen2.5:7b", "deepseek-r1:8b"],
-            "openai": ["gpt-4o-mini"],
-            "anthropic": ["claude-sonnet-4-6", "claude-haiku-4-5"],
-            "gemini": ["gemini-2.5-flash", "gemini-2.5-pro"],
+            "openai": ["gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.4", "gpt-5.5"],
+            "anthropic": ["claude-sonnet-4-6", "claude-haiku-4-5", "claude-opus-4-7"],
+            "gemini": ["gemini-3.1-flash-lite", "gemini-3.1-pro-preview"],
         }
     )
     request_timeout_seconds: int = Field(60, ge=5, le=600)
@@ -127,7 +127,7 @@ class LLMSettings(BaseModel):
         description="Ollama API base URL",
     )
 
-    def normalize_provider(self, provider: Optional[str]) -> str:
+    def normalize_provider(self, provider: str | None) -> str:
         p = (provider or self.default_provider).strip().lower()
         aliases = {"claude": "anthropic"}
         return aliases.get(p, p)
@@ -145,7 +145,7 @@ class LLMSettings(BaseModel):
             return False
         return self.provider_has_key(p)
 
-    def resolve_model(self, provider: str, requested_model: Optional[str]) -> str:
+    def resolve_model(self, provider: str, requested_model: str | None) -> str:
         p = self.normalize_provider(provider)
         allowed = self.allowed_models_by_provider.get(p) or []
         if not allowed:
@@ -170,12 +170,12 @@ class EvaluationSettings(BaseModel):
 
 class APISettings(BaseModel):
     auth_enabled: bool = Field(True, description="Require API key for protected routes")
-    api_keys: List[str] = Field(default_factory=list, description="Static API keys (optional)")
+    api_keys: list[str] = Field(default_factory=list, description="Static API keys (optional)")
     rate_limit_per_minute: int = Field(60, ge=1, le=2000)
     redis_rate_limit_enabled: bool = Field(True, description="Use Redis-backed distributed rate limiting")
     redis_url: str = Field("redis://localhost:6379/0", description="Redis URL for distributed rate limiting")
 
-    def resolved_api_keys(self) -> List[str]:
+    def resolved_api_keys(self) -> list[str]:
         if self.api_keys:
             return [k for k in self.api_keys if k]
         from_env = os.getenv("DOC_API_KEYS", "")
@@ -214,7 +214,7 @@ def load_config(config_path: str = "config.yaml", env: str | None = None) -> Con
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-    with open(config_path, 'r') as f:
+    with open(config_path) as f:
         config_data = yaml.safe_load(f) or {}
 
     # Merge environment-specific overrides (e.g. config.dev.yaml)
@@ -222,7 +222,7 @@ def load_config(config_path: str = "config.yaml", env: str | None = None) -> Con
     base, ext = os.path.splitext(config_path)
     env_config_path = f"{base}.{resolved_env}{ext}"
     if os.path.exists(env_config_path):
-        with open(env_config_path, 'r') as f:
+        with open(env_config_path) as f:
             env_overrides = yaml.safe_load(f) or {}
         config_data.update(env_overrides)
 

@@ -9,10 +9,11 @@ import os
 import time
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Iterator
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Deque, Dict, Iterator, cast
+from typing import Any, cast
 
 from fastapi import BackgroundTasks, FastAPI, File, Header, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +31,11 @@ from src.api.models import (
     RetrievedChunkModel,
     TruthfulnessModel,
 )
+from src.api.routes_chats import router as chats_router
+from src.api.routes_connectors import router as connectors_router
+from src.api.routes_ingest import router as ingest_router
+from src.api.routes_settings import router as settings_router
+from src.api.routes_vault import router as vault_router
 from src.core.observability import get_observer
 from src.core.rag_orchestrator import (
     COLLECTION_NAME,
@@ -48,16 +54,12 @@ from src.web.ingestion_service import (
     run_ingest,
     save_uploaded_files,
 )
-from src.api.routes_chats import router as chats_router
-from src.api.routes_ingest import router as ingest_router
-from src.api.routes_settings import router as settings_router
-from src.api.routes_vault import router as vault_router
 
 _cfg = load_config("config.yaml")
 _orchestrator = RAGOrchestrator(_cfg)
 _metrics_collector = get_metrics_collector()
-_rate_window: Dict[str, Deque[float]] = defaultdict(deque)
-_redis_client: "Redis | None" = None
+_rate_window: dict[str, deque[float]] = defaultdict(deque)
+_redis_client: Redis | None = None
 # Redis is a base dependency in this project; keep a feature flag for defensive gating.
 _REDIS_AVAILABLE = True
 _logger = logging.getLogger("api.audit")
@@ -79,10 +81,7 @@ def _frontend_origins() -> list[str]:
 
 
 def _demo_uploads_enabled() -> bool:
-    return (
-        os.getenv("DOC_PROFILE", "").strip().lower() == "demo"
-        and os.getenv("DOC_DEMO_UPLOADS", "0").strip() == "1"
-    )
+    return os.getenv("DOC_PROFILE", "").strip().lower() == "demo" and os.getenv("DOC_DEMO_UPLOADS", "0").strip() == "1"
 
 
 @asynccontextmanager
@@ -97,7 +96,7 @@ async def _lifespan(app: FastAPI):
                 pass
             try:
                 await asyncio.wait_for(stop.wait(), timeout=60.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
     ollama_monitor = None
@@ -107,7 +106,6 @@ async def _lifespan(app: FastAPI):
 
         from alembic import command
         from alembic.config import Config
-
         from src.api.sse_bus import SSEBus
         from src.core.ingest_pipeline import build_pipeline
         from src.core.ollama_health import OllamaHealthMonitor
@@ -118,7 +116,8 @@ async def _lifespan(app: FastAPI):
         ini = root / "alembic.ini"
         if ini.is_file():
             cfg = Config(str(ini))
-            command.upgrade(cfg, "head")
+            # Avoid invoking Alembic's asyncio migration runner from the active event loop.
+            await asyncio.to_thread(command.upgrade, cfg, "head")
 
         settings = load_second_brain_settings()
         bus = SSEBus()
@@ -153,11 +152,31 @@ async def _lifespan(app: FastAPI):
             )
             await vault_watcher.start()
 
+    async def _connector_scheduler() -> None:
+        """Per-connector ingestion scheduler.
+
+        Each connector syncs on its own ``sync_interval_min`` cadence;
+        ``CONNECTOR_SYNC_INTERVAL_MIN`` (if set) is a global default for
+        connectors that don't specify one.
+        """
+        from src.core.connectors.scheduler import ConnectorScheduler
+
+        try:
+            global_default = float(os.getenv("CONNECTOR_SYNC_INTERVAL_MIN", "0") or "0")
+        except ValueError:
+            global_default = 0.0
+        scheduler = ConnectorScheduler(app, tick_seconds=60, global_default_min=global_default)
+        await scheduler.run_until(stop)
+
     task = asyncio.create_task(_janitor_loop())
+    connector_task = asyncio.create_task(_connector_scheduler())
     try:
         yield
     finally:
         stop.set()
+        connector_task.cancel()
+        with suppress(Exception):
+            await connector_task
         if vault_watcher is not None:
             await vault_watcher.stop()
         if ollama_monitor is not None:
@@ -172,6 +191,7 @@ app.include_router(ingest_router)
 app.include_router(vault_router)
 app.include_router(chats_router)
 app.include_router(settings_router)
+app.include_router(connectors_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins(),
@@ -201,7 +221,7 @@ def _audit_log(event: str, request: Request, **fields: object) -> None:
     _logger.info(json.dumps(payload, separators=(",", ":")))
 
 
-def _get_redis() -> "Redis | None":
+def _get_redis() -> Redis | None:
     global _redis_client
     if not _REDIS_AVAILABLE or not _cfg.api.redis_rate_limit_enabled:
         return None
@@ -332,8 +352,7 @@ def llm_config() -> LLMConfigModel:
     """Allowed providers/models and defaults from server config (for UI dropdowns)."""
     llm = _cfg.llm
     provider_key_configured = {
-        provider: llm.provider_has_key(provider)
-        for provider in llm.allowed_models_by_provider.keys()
+        provider: llm.provider_has_key(provider) for provider in llm.allowed_models_by_provider.keys()
     }
     return LLMConfigModel(
         default_provider=llm.default_provider,
@@ -385,6 +404,7 @@ def _raise_sessions_demo_disabled() -> None:
 
 
 if _demo_uploads_enabled():
+
     @app.post("/sessions")
     def create_session(response: Response) -> dict[str, Any]:
         sid = session_corpus.new_session_id()
@@ -394,14 +414,12 @@ if _demo_uploads_enabled():
         response.headers["X-Demo-Session-Id"] = sid
         return {"session_id": session.session_id, "expires_at": expires_at}
 
-
     @app.get("/sessions/{sid}")
     def get_session(sid: str, response: Response) -> dict[str, Any]:
         session = session_corpus.get_or_create(sid)
         session_corpus.touch(sid)
         response.headers["X-Demo-Session-Id"] = sid
         return _session_summary(session)
-
 
     @app.post("/sessions/{sid}/documents")
     def upload_session_documents(
@@ -447,7 +465,6 @@ if _demo_uploads_enabled():
         )
         session_corpus.touch(sid)
         return {"session_id": sid, "results": [r.__dict__ for r in staged], **_session_summary(session)}
-
 
     @app.delete("/sessions/{sid}")
     def delete_session(sid: str, response: Response) -> dict[str, Any]:

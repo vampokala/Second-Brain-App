@@ -66,16 +66,16 @@ export function Uploader({
   return (
     <div>
       <div
-        className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center"
+        className="rounded-2xl border-2 border-dashed border-input bg-muted p-8 text-center"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault()
           upload(event.dataTransfer.files)
         }}
       >
-        <Upload className="mx-auto mb-3 h-8 w-8 text-blue-600" aria-hidden="true" />
-        <p className="font-medium text-slate-900">Drop files here or choose files</p>
-        <p className="mt-1 text-sm text-slate-600">PDF, DOCX, TXT, Markdown, or HTML.</p>
+        <Upload className="mx-auto mb-3 h-8 w-8 text-primary" aria-hidden="true" />
+        <p className="font-medium text-foreground">Drop files here or choose files</p>
+        <p className="mt-1 text-sm text-muted-foreground">PDF, DOCX, TXT, Markdown, or HTML.</p>
         <input
           ref={inputRef}
           type="file"
@@ -86,19 +86,19 @@ export function Uploader({
         />
         <button
           type="button"
-          className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
           disabled={mutation.isPending || !summary}
           onClick={() => inputRef.current?.click()}
         >
           {mutation.isPending ? 'Uploading...' : 'Choose files'}
         </button>
       </div>
-      {message ? <p className="mt-3 text-sm text-slate-700" aria-live="polite">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-foreground" aria-live="polite">{message}</p> : null}
       {results.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {results.map((result) => (
-            <li key={`${result.filename}-${result.status}`} className="rounded-lg bg-slate-50 p-3 text-sm">
-              <span className="font-medium text-slate-900">{result.filename}</span>: {resultMessage(result)}
+            <li key={`${result.filename}-${result.status}`} className="rounded-lg bg-muted p-3 text-sm">
+              <span className="font-medium text-foreground">{result.filename}</span>: {resultMessage(result)}
             </li>
           ))}
         </ul>

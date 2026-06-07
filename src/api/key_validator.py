@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 
 import httpx
-
 from src.utils.config import load_config
 
 
@@ -23,7 +22,11 @@ async def validate_key(provider: str, api_key: str | None) -> tuple[bool, str]:
                 r = await client.post(
                     url,
                     headers={"Authorization": f"Bearer {k}"},
-                    json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
+                    json={
+                        "model": cfg.default_model_by_provider.get("openai", "gpt-5.4-mini"),
+                        "messages": [{"role": "user", "content": "ping"}],
+                        "max_tokens": 1,
+                    },
                 )
             return r.is_success, (r.text[:200] if not r.is_success else "ok")
         if p == "anthropic":
@@ -48,6 +51,6 @@ async def validate_key(provider: str, api_key: str | None) -> tuple[bool, str]:
             return r.is_success, (r.text[:200] if not r.is_success else "ok")
         if p == "ollama":
             return True, "local"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return False, str(exc)[:200]
     return False, "unsupported"

@@ -17,9 +17,9 @@ export function Composer({ onSend, disabled }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <textarea
-        className="w-full resize-none rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-blue-500"
+        className="w-full resize-none rounded-lg border border-border p-3 text-sm outline-none focus:border-primary"
         rows={3}
         maxLength={32000}
         placeholder="Message… (⌘/Ctrl+Enter)"
@@ -33,12 +33,12 @@ export function Composer({ onSend, disabled }: Props) {
           }
         }}
       />
-      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
         <span>~{est} tokens (est.)</span>
         <button
           type="button"
           disabled={disabled}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           onClick={submit}
         >
           Send
