@@ -33,6 +33,7 @@ class ChatMessageDTO(BaseModel):
     parent_id: uuid.UUID | None = None
     created_at: datetime
     citations: list[dict[str, Any]] = Field(default_factory=list)
+    retrieved: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ChatListItemDTO(BaseModel):

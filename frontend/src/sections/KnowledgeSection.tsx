@@ -27,7 +27,7 @@ export function KnowledgeSection({ view, onViewChange }: Props) {
         : 'Keep knowledge fresh from GitHub, JIRA, Confluence, and Slack.'
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">{heading}</h2>
@@ -45,9 +45,11 @@ export function KnowledgeSection({ view, onViewChange }: Props) {
         />
       </div>
 
-      {view === 'browse' ? <VaultTab /> : null}
-      {view === 'add' ? <IngestTab /> : null}
-      {view === 'connectors' ? <ConnectorsPanel /> : null}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {view === 'browse' ? <VaultTab /> : null}
+        {view === 'add' ? <IngestTab /> : null}
+        {view === 'connectors' ? <ConnectorsPanel /> : null}
+      </div>
     </div>
   )
 }

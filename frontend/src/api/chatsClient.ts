@@ -9,6 +9,13 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export type RetrievedChunk = {
+  id: string
+  score: number
+  source: string
+  preview: string
+}
+
 export type ChatListItem = {
   id: string
   title: string | null
@@ -33,6 +40,7 @@ export type ChatDetail = {
     parent_id: string | null
     created_at: string
     citations: Array<Record<string, unknown>>
+    retrieved?: RetrievedChunk[]
   }>
 }
 

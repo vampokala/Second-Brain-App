@@ -8,7 +8,7 @@ import { fetchLlmConfig } from '../api/client'
 import type { LlmConfigModel } from '../api/generated'
 import { streamChatPost } from '../lib/streamChat'
 import { vaultPathQuery } from '../lib/vaultDeepLink'
-import { useChatStore } from '../state/useChatStore'
+import { useChatStore, type RetrievedChunk } from '../state/useChatStore'
 import { ChatHeader } from '../components/chat/ChatHeader'
 import { Composer } from '../components/chat/Composer'
 import { ConversationList } from '../components/chat/ConversationList'
@@ -43,6 +43,7 @@ export function ChatTab({ onNavigateVault }: Props) {
     streamText,
     loading,
     error,
+    pendingChunks,
     setChats,
     setActive,
     setDetail,
@@ -50,6 +51,7 @@ export function ChatTab({ onNavigateVault }: Props) {
     resetStream,
     setLoading,
     setError,
+    setPendingChunks,
   } = useChatStore()
   const [searchQ, setSearchQ] = useState('')
   const [showList, setShowList] = useState(true)
@@ -240,6 +242,9 @@ export function ChatTab({ onNavigateVault }: Props) {
         },
         (ev) => {
           if (ev.event === 'token') appendStream(ev.data.text)
+          // Live preview of the retrieved context while the answer streams in;
+          // the persisted copy comes back on the re-fetched detail below.
+          if (ev.event === 'retrieval') setPendingChunks(ev.data.chunks as RetrievedChunk[])
           if (ev.event === 'error') setError(ev.data.message)
         },
       )
@@ -305,6 +310,7 @@ export function ChatTab({ onNavigateVault }: Props) {
             <MessageStream
               messages={detail?.messages || []}
               streaming={streamText || undefined}
+              streamingChunks={loading ? pendingChunks : undefined}
               onOpenVault={(path) => {
                 window.location.hash = vaultPathQuery(path)
                 onNavigateVault?.()

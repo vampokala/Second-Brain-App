@@ -193,7 +193,12 @@ class ChatOrchestrator:
         user_leaf = msgs[-1].id
         asst = await self._store.append_message(
             chat_id,
-            NewMessage(role="assistant", content=text_acc or (final.answer or ""), parent_id=user_leaf),
+            NewMessage(
+                role="assistant",
+                content=text_acc or (final.answer or ""),
+                parent_id=user_leaf,
+                retrieved=chunk_payload or None,
+            ),
         )
         if citation_payload:
             pairs = [

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tree } from 'react-arborist'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -74,9 +74,22 @@ export function VaultTab() {
 
   const arborData = useMemo(() => toArborist(tree?.nodes || []), [tree])
 
+  const treeBoxRef = useRef<HTMLDivElement | null>(null)
+  const [treeSize, setTreeSize] = useState({ width: 320, height: 320 })
+  useEffect(() => {
+    const el = treeBoxRef.current
+    if (!el) return
+    const update = () =>
+      setTreeSize({ width: el.clientWidth, height: el.clientHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <div className="app-card grid min-h-[28rem] grid-cols-1 gap-4 p-5 md:grid-cols-12">
-      <div className="md:col-span-4">
+    <div className="app-card grid min-h-0 flex-1 grid-cols-1 gap-4 p-5 md:grid-cols-12">
+      <div className="flex min-h-0 flex-col md:col-span-4">
         <h2 className="mb-3 text-lg font-bold">Vault</h2>
         <input
           className="mb-2 w-full rounded-lg border border-border px-3 py-2 text-sm"
@@ -85,12 +98,15 @@ export function VaultTab() {
           onChange={(e) => setFilter(e.target.value)}
         />
         {error ? <div className="text-sm text-destructive">{error}</div> : null}
-        <div className="h-80 overflow-hidden rounded-lg border border-border">
+        <div
+          ref={treeBoxRef}
+          className="min-h-[20rem] flex-1 overflow-hidden rounded-lg border border-border"
+        >
           {arborData.length ? (
             <Tree
               data={arborData}
-              width={340}
-              height={320}
+              width={treeSize.width}
+              height={treeSize.height}
               indent={16}
               onSelect={(nodes) => {
                 const n = nodes[0]
@@ -98,7 +114,12 @@ export function VaultTab() {
               }}
             >
               {({ node, style, dragHandle }) => (
-                <div style={style} ref={dragHandle} className="cursor-pointer text-sm">
+                <div
+                  style={style}
+                  ref={dragHandle}
+                  title={node.data.name}
+                  className="flex cursor-pointer items-center overflow-hidden whitespace-nowrap text-ellipsis text-sm"
+                >
                   {node.data.name}
                 </div>
               )}
@@ -108,7 +129,7 @@ export function VaultTab() {
           )}
         </div>
       </div>
-      <div className="md:col-span-8">
+      <div className="flex min-h-0 flex-col md:col-span-8">
         <div className="mb-2 text-sm font-medium text-muted-foreground">{selected || 'Select a file'}</div>
         {content?.frontmatter ? (
           <div className="mb-2">
@@ -122,7 +143,7 @@ export function VaultTab() {
             ) : null}
           </div>
         ) : null}
-        <div className="rounded-lg border border-border bg-card p-4 text-sm">
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-card p-4 text-sm">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content?.body || '_No file selected_'}</ReactMarkdown>
         </div>
       </div>

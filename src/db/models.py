@@ -63,6 +63,10 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text)
     parent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("messages.id"), nullable=True)
     search_vector: Mapped[Any | None] = mapped_column(TSVECTOR, nullable=True)
+    # Retrieval chunks that grounded this (assistant) message, for "show your work"
+    # inspection in the UI. Citations stay the curated provenance; this is the fuller
+    # retrieved set, stored as a list of {id, score, source, preview}.
+    retrieved: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     elapsed_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

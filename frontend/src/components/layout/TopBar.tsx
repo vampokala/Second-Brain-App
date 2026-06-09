@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { Database, FileText, MessageSquareText, Moon, Sun, Zap } from 'lucide-react'
+import { Database, FileText, Moon, Sun } from 'lucide-react'
 
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
-import { Segmented } from '../ui/segmented'
 import { useTheme } from '../theme/ThemeProvider'
-import { SECTION_TITLES, type AskView, type Section } from './sections'
+import { SECTION_TITLES, type Section } from './sections'
 
 type VaultStats = {
   file_count: number
@@ -29,11 +28,9 @@ const SECTIONS: Section[] = ['ask', 'knowledge', 'settings', 'help']
 type Props = {
   active: Section
   onSelect: (s: Section) => void
-  askView: AskView
-  onAskViewChange: (v: AskView) => void
 }
 
-export function TopBar({ active, onSelect, askView, onAskViewChange }: Props) {
+export function TopBar({ active, onSelect }: Props) {
   const { theme, toggleTheme } = useTheme()
   const { data: stats } = useQuery({
     queryKey: ['vault-stats'],
@@ -59,19 +56,6 @@ export function TopBar({ active, onSelect, askView, onAskViewChange }: Props) {
             </option>
           ))}
         </select>
-
-        {/* Ask-mode toggle lives in the top bar so the chat pane gets full height. */}
-        {active === 'ask' ? (
-          <Segmented<AskView>
-            aria-label="Ask mode"
-            value={askView}
-            onChange={onAskViewChange}
-            options={[
-              { value: 'chat', label: 'Chat', icon: MessageSquareText },
-              { value: 'quick', label: 'Quick ask', icon: Zap },
-            ]}
-          />
-        ) : null}
       </div>
 
       <div className="flex items-center gap-2">

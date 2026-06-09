@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+import type { RetrievedChunk } from '../../state/useChatStore'
 import { CitationPill } from './CitationPill'
 
 type Msg = {
@@ -8,15 +9,41 @@ type Msg = {
   role: string
   content: string
   citations: Array<Record<string, unknown>>
+  retrieved?: RetrievedChunk[]
 }
 
 type Props = {
   messages: Msg[]
   streaming?: string
+  streamingChunks?: RetrievedChunk[]
   onOpenVault?: (hash: string) => void
 }
 
-export function MessageStream({ messages, streaming, onOpenVault }: Props) {
+function RetrievedChunksPanel({ chunks }: { chunks: RetrievedChunk[] }) {
+  if (!chunks.length) return null
+  return (
+    <details className="mt-3 rounded-lg border border-border bg-muted/50 p-2 text-xs">
+      <summary className="cursor-pointer select-none font-medium text-muted-foreground">
+        Retrieved chunks ({chunks.length})
+      </summary>
+      <ul className="mt-2 space-y-2">
+        {chunks.map((c) => (
+          <li key={c.id} className="rounded-md bg-card p-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="truncate font-medium text-foreground" title={c.source || c.id}>
+                {c.source || c.id}
+              </span>
+              <span className="shrink-0 text-muted-foreground">score {c.score.toFixed(3)}</span>
+            </div>
+            <p className="mt-1 text-muted-foreground">{c.preview}</p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
+export function MessageStream({ messages, streaming, streamingChunks, onOpenVault }: Props) {
   return (
     <div className="space-y-4 overflow-y-auto pr-2 text-sm">
       {messages.map((m) => (
@@ -40,6 +67,9 @@ export function MessageStream({ messages, streaming, onOpenVault }: Props) {
               ))}
             </div>
           ) : null}
+          {m.role === 'assistant' && m.retrieved?.length ? (
+            <RetrievedChunksPanel chunks={m.retrieved} />
+          ) : null}
         </div>
       ))}
       {streaming ? (
@@ -48,6 +78,7 @@ export function MessageStream({ messages, streaming, onOpenVault }: Props) {
           <div className="prose prose-sm max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{streaming}</ReactMarkdown>
           </div>
+          {streamingChunks?.length ? <RetrievedChunksPanel chunks={streamingChunks} /> : null}
         </div>
       ) : null}
     </div>

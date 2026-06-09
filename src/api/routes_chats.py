@@ -81,6 +81,7 @@ def _to_detail(ctx: Any) -> ChatDetailDTO:
                 parent_id=m.parent_id,
                 created_at=m.created_at,
                 citations=payload,
+                retrieved=list(m.retrieved or []),
             )
         )
     c = ctx.chat
