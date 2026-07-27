@@ -94,7 +94,7 @@ class TestChunkText:
         assert len(chunks) >= 2
         first_tokens = proc._tokenizer.encode(chunks[0])
         second_tokens = proc._tokenizer.encode(chunks[1])
-        assert first_tokens[-proc.overlap:] == second_tokens[:proc.overlap]
+        assert first_tokens[-proc.overlap :] == second_tokens[: proc.overlap]
 
     def test_no_empty_chunks(self, processor):
         chunks = processor.chunk_text("hello world " * 20)

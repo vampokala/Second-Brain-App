@@ -6,7 +6,6 @@ import asyncio
 from pathlib import Path
 
 import frontmatter
-
 from src.core import wiki_stub_writer as ws
 
 

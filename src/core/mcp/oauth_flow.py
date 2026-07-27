@@ -4,21 +4,31 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import secrets
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Protocol
-from urllib.parse import parse_qs, urlparse
+from typing import Any, Literal, Protocol
+from urllib.parse import parse_qs, urlencode, urlparse
 
+import httpx
 from pydantic import AnyUrl
 from src.core.mcp.errors import McpAuthError
 from src.core.mcp.token_store import DbTokenStorage
 
 from mcp.client.auth import OAuthClientProvider
-from mcp.shared.auth import OAuthClientMetadata
+from mcp.shared.auth import OAuthClientMetadata, OAuthToken
 
 logger = logging.getLogger(__name__)
+
+FlowKind = Literal["mcp_sdk", "github_app"]
+
+# GitHub remote MCP does not support Dynamic Client Registration. OAuth only
+# works with a pre-registered GitHub OAuth App (client id + secret).
+_GITHUB_AUTHORIZE = "https://github.com/login/oauth/authorize"
+_GITHUB_TOKEN = "https://github.com/login/oauth/access_token"  # noqa: S105 — endpoint URL, not a secret
+_GITHUB_DEFAULT_SCOPES = "repo read:org read:user user:email"
 
 
 class _SessionFactory(Protocol):
@@ -35,6 +45,7 @@ class PendingAuth:
     code_future: asyncio.Future[tuple[str, str | None]]
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     task: asyncio.Task[None] | None = None
+    flow_kind: FlowKind = "mcp_sdk"
 
 
 class OAuthFlowManager:
@@ -63,6 +74,107 @@ class OAuthFlowManager:
 
     async def start(self, server: Any) -> str:
         """Begin OAuth for ``server`` and return the authorization URL."""
+        preset = getattr(server, "preset", "") or ""
+        if preset == "github" or _is_github_mcp_url(str(getattr(server, "url", ""))):
+            return await self.start_github(server)
+        return await self._start_mcp_sdk(server)
+
+    async def start_github(self, server: Any) -> str:
+        """GitHub remote MCP OAuth via a pre-registered OAuth App (no DCR)."""
+        client_id = (os.getenv("GITHUB_OAUTH_CLIENT_ID") or "").strip()
+        client_secret = (os.getenv("GITHUB_OAUTH_CLIENT_SECRET") or "").strip()
+        if not client_id or not client_secret:
+            raise McpAuthError(
+                "GitHub remote MCP does not support browser OAuth without a "
+                "pre-registered GitHub OAuth App (no Dynamic Client Registration). "
+                "Use “Use API token” with GITHUB_TOKEN, or set "
+                "GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env "
+                "(callback URL must be your MCP_OAUTH_REDIRECT_URI)."
+            )
+
+        server_id = str(server.id)
+        async with self._lock:
+            await self._cancel_pending_for_server(server_id)
+            state = secrets.token_urlsafe(24)
+            scopes = (os.getenv("GITHUB_OAUTH_SCOPES") or _GITHUB_DEFAULT_SCOPES).strip()
+            params = {
+                "client_id": client_id,
+                "redirect_uri": self._redirect_uri,
+                "scope": scopes,
+                "state": state,
+                "allow_signup": "false",
+            }
+            auth_url = f"{_GITHUB_AUTHORIZE}?{urlencode(params)}"
+            code_future: asyncio.Future[tuple[str, str | None]] = (
+                asyncio.get_running_loop().create_future()
+            )
+            pending = PendingAuth(
+                server_id=server_id,
+                state=state,
+                authorization_url=auth_url,
+                code_future=code_future,
+                flow_kind="github_app",
+            )
+            self._pending_by_state[state] = pending
+            self._pending_by_server[server_id] = pending
+            task = asyncio.create_task(self._complete_github_oauth(pending, client_id, client_secret))
+            pending.task = task
+            self._cleanup_tasks.add(task)
+            task.add_done_callback(self._cleanup_tasks.discard)
+
+        logger.info("mcp_github_oauth_started server_id=%s", server_id)
+        return auth_url
+
+    async def _complete_github_oauth(
+        self,
+        pending: PendingAuth,
+        client_id: str,
+        client_secret: str,
+    ) -> None:
+        try:
+            code, _state = await pending.code_future
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    _GITHUB_TOKEN,
+                    headers={"Accept": "application/json"},
+                    data={
+                        "client_id": client_id,
+                        "client_secret": client_secret,
+                        "code": code,
+                        "redirect_uri": self._redirect_uri,
+                    },
+                )
+            payload = resp.json()
+            if resp.status_code >= 400 or payload.get("error"):
+                detail = payload.get("error_description") or payload.get("error") or resp.text
+                raise McpAuthError(f"GitHub token exchange failed: {detail}")
+            access = str(payload.get("access_token") or "").strip()
+            if not access:
+                raise McpAuthError("GitHub token exchange returned no access_token.")
+            storage = DbTokenStorage(pending.server_id, self._session_factory)
+            await storage.set_tokens(
+                OAuthToken(
+                    access_token=access,
+                    token_type=str(payload.get("token_type") or "Bearer"),
+                    scope=str(payload.get("scope") or "") or None,
+                    refresh_token=None,
+                    expires_in=None,
+                )
+            )
+            logger.info("mcp_github_oauth_token_saved server_id=%s", pending.server_id)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "mcp_github_oauth_failed server_id=%s error=%s",
+                pending.server_id,
+                exc,
+            )
+        finally:
+            await self._drop_pending(pending)
+
+    async def _start_mcp_sdk(self, server: Any) -> str:
+        """Atlassian-style remote MCP OAuth via the MCP Python SDK (supports DCR)."""
         server_id = str(server.id)
         async with self._lock:
             await self._cancel_pending_for_server(server_id)
@@ -80,6 +192,7 @@ class OAuthFlowManager:
                     state=oauth_state,
                     authorization_url=url,
                     code_future=code_future,
+                    flow_kind="mcp_sdk",
                 )
                 self._pending_by_state[oauth_state] = pending
                 self._pending_by_server[server_id] = pending
@@ -109,13 +222,13 @@ class OAuthFlowManager:
             else:
                 task = asyncio.create_task(self._default_connect(str(server.url), provider))
 
-            # Placeholder pending until redirect_handler fires with the real URL/state.
             placeholder = PendingAuth(
                 server_id=server_id,
                 state=flow_state,
                 authorization_url="",
                 code_future=code_future,
                 task=task,
+                flow_kind="mcp_sdk",
             )
             self._pending_by_state[flow_state] = placeholder
             self._pending_by_server[server_id] = placeholder
@@ -124,7 +237,10 @@ class OAuthFlowManager:
             url = await asyncio.wait_for(auth_url_holder, timeout=30.0)
         except TimeoutError as exc:
             await self._cancel_pending_for_server(server_id)
-            raise McpAuthError("Timed out waiting for OAuth authorization URL.") from exc
+            raise McpAuthError(
+                "Timed out waiting for OAuth authorization URL. "
+                "The MCP server may not support Dynamic Client Registration."
+            ) from exc
 
         pending = self._pending_by_server.get(server_id)
         if pending is not None:
@@ -146,12 +262,15 @@ class OAuthFlowManager:
         if pending.code_future.done():
             raise McpAuthError("OAuth code already delivered for this flow.")
         pending.code_future.set_result((code, state))
-        logger.info("mcp_oauth_callback_delivered server_id=%s", pending.server_id)
-        # Drop the pending index after a short delay so connection_status can
-        # flip to connected once tokens are written by the OAuth provider.
-        task = asyncio.create_task(self._cleanup_after_callback(pending))
-        self._cleanup_tasks.add(task)
-        task.add_done_callback(self._cleanup_tasks.discard)
+        logger.info(
+            "mcp_oauth_callback_delivered server_id=%s flow=%s",
+            pending.server_id,
+            pending.flow_kind,
+        )
+        if pending.flow_kind == "mcp_sdk":
+            task = asyncio.create_task(self._cleanup_after_callback(pending))
+            self._cleanup_tasks.add(task)
+            task.add_done_callback(self._cleanup_tasks.discard)
         return pending.server_id
 
     async def _cleanup_after_callback(self, pending: PendingAuth) -> None:
@@ -168,12 +287,7 @@ class OAuthFlowManager:
             await self._drop_pending(pending)
 
     async def connection_status(self, server_id: str) -> str:
-        """Return ``connected`` | ``pending`` | ``disconnected`` for a server.
-
-        Tokens win over an in-flight pending flow so the UI can flip to
-        Connected as soon as the browser callback completes (even while the
-        background MCP session task is still winding down).
-        """
+        """Return ``connected`` | ``pending`` | ``disconnected`` for a server."""
         self._purge_expired()
         storage = DbTokenStorage(str(server_id), self._session_factory)
         if await storage.has_access_token():
@@ -184,9 +298,7 @@ class OAuthFlowManager:
         return "disconnected"
 
     async def mark_verified(self, server_id: str) -> None:
-        """Record a successful non-OAuth connectivity check (sidecar probe)."""
-        from mcp.shared.auth import OAuthToken
-
+        """Record a successful non-OAuth connectivity check (sidecar / token)."""
         storage = DbTokenStorage(str(server_id), self._session_factory)
         await storage.set_tokens(
             OAuthToken(access_token="verified", token_type="Bearer")  # noqa: S106
@@ -196,7 +308,6 @@ class OAuthFlowManager:
         await self._cancel_pending_for_server(str(server_id))
 
     async def _default_connect(self, url: str, provider: OAuthClientProvider) -> None:
-        """Trigger the OAuth auth flow by opening an MCP session."""
         from src.core.mcp.session import open_mcp_session
 
         try:
@@ -241,3 +352,8 @@ def _state_from_auth_url(url: str) -> str | None:
         return values[0] if values else None
     except Exception:
         return None
+
+
+def _is_github_mcp_url(url: str) -> bool:
+    host = urlparse(url).netloc.lower()
+    return "githubcopilot.com" in host or host == "api.github.com"

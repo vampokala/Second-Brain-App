@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -18,14 +18,14 @@ class IngestUrlBody(BaseModel):
     url: HttpUrl
     """Optional relative markdown path to write (default derived from URL)."""
 
-    relpath: Optional[str] = None
+    relpath: str | None = None
 
 
 class IngestItemResult(BaseModel):
     path: str
     status: Literal["queued", "processing", "ingested", "failed", "skipped", "cancelled"]
     chunk_count: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class IngestResponse(BaseModel):
@@ -47,8 +47,8 @@ class IngestScanResponse(BaseModel):
 
 class IngestScanStartResponse(BaseModel):
     status: Literal["started"]
-    detail: Optional[str] = None
-    selected: Optional[int] = None
+    detail: str | None = None
+    selected: int | None = None
 
 
 class IngestScanFile(BaseModel):
@@ -76,16 +76,16 @@ class IngestPathsBody(BaseModel):
 
 class ReindexResponse(BaseModel):
     status: Literal["started", "ok", "failed"]
-    detail: Optional[str] = None
+    detail: str | None = None
 
 
 class IngestEventPayload(BaseModel):
     file_path: str
     event_type: str
     status: str
-    details: Optional[dict[str, Any]] = None
-    phase: Optional[str] = None
-    message: Optional[str] = None
-    relative_path: Optional[str] = None
-    current: Optional[int] = None
-    total: Optional[int] = None
+    details: dict[str, Any] | None = None
+    phase: str | None = None
+    message: str | None = None
+    relative_path: str | None = None
+    current: int | None = None
+    total: int | None = None

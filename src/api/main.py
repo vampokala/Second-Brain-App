@@ -183,10 +183,8 @@ async def _lifespan(app: FastAPI):
                     await asyncio.sleep(3.0)
                     try:
                         await pipeline.scan_and_ingest()
-                    except Exception as exc:  # noqa: BLE001
-                        logging.getLogger(__name__).exception(
-                            "startup_scan_failed error=%s", exc
-                        )
+                    except Exception as exc:
+                        logging.getLogger(__name__).exception("startup_scan_failed error=%s", exc)
 
                 asyncio.create_task(_startup_scan())
 

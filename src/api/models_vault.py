@@ -11,7 +11,7 @@ class FileNode(BaseModel):
     name: str
     path: str
     kind: Literal["file", "dir"]
-    children: list["FileNode"] = Field(default_factory=list)
+    children: list[FileNode] = Field(default_factory=list)
 
 
 class FileTree(BaseModel):

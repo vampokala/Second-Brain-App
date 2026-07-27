@@ -1,10 +1,11 @@
-'''
+"""
 Multi-format support (PDF, DOCX, TXT, MD, HTML, tabular, code, notebooks, images)
 - Intelligent chunking with overlap
 - Metadata extraction (title, author, date, file type)
 - Text cleaning and normalization
 - Duplicate detection
-'''
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -12,7 +13,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Protocol
 
 import frontmatter
 import tiktoken
@@ -20,7 +21,6 @@ from bs4 import BeautifulSoup
 from docx import Document
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-
 from src.core.extractors import extract_for_path
 from src.core.supported_formats import is_supported
 
@@ -35,21 +35,19 @@ class _RegexTokenizer:
 
     _token_pattern = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 
-    def encode(self, text: str) -> List[str]:
+    def encode(self, text: str) -> list[str]:
         return self._token_pattern.findall(text)
 
-    def decode(self, token_ids: List[str]) -> str:
+    def decode(self, token_ids: list[str]) -> str:
         if not token_ids:
             return ""
         return " ".join(token_ids)
 
 
 class _Tokenizer(Protocol):
-    def encode(self, text: str) -> List[Any]:
-        ...
+    def encode(self, text: str) -> list[Any]: ...
 
-    def decode(self, token_ids: List[Any]) -> str:
-        ...
+    def decode(self, token_ids: list[Any]) -> str: ...
 
 
 class DocumentProcessor:
@@ -95,12 +93,12 @@ class DocumentProcessor:
         self,
         file_path: str,
         *,
-        vault_root: Optional[str] = None,
-        relpath: Optional[str] = None,
+        vault_root: str | None = None,
+        relpath: str | None = None,
         vision_enabled: bool = False,
         vision_max_bytes: int = 5_000_000,
         vision_max_edge: int = 4096,
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         ext = os.path.splitext(file_path)[1].lower()
         metadata = self.extract_metadata(file_path)
         if relpath:
@@ -140,8 +138,8 @@ class DocumentProcessor:
         cleaned_text = self.clean_text(text)
         chunks = self.chunk_text(cleaned_text)
         return {
-            'metadata': metadata,
-            'chunks': chunks,
+            "metadata": metadata,
+            "chunks": chunks,
         }
 
     def _is_duplicate(self, text: str, file_path: str) -> bool:
@@ -167,11 +165,11 @@ class DocumentProcessor:
     ) -> str:
         ext = os.path.splitext(file_path)[1].lower()
         legacy_extractors = {
-            '.pdf': self._extract_pdf_text,
-            '.docx': self._extract_docx_text,
-            '.txt': self._extract_plain_text,
-            '.md': self._extract_plain_text,
-            '.html': self._extract_html_text,
+            ".pdf": self._extract_pdf_text,
+            ".docx": self._extract_docx_text,
+            ".txt": self._extract_plain_text,
+            ".md": self._extract_plain_text,
+            ".html": self._extract_html_text,
         }
         legacy = legacy_extractors.get(ext)
         if legacy is not None:
@@ -185,32 +183,32 @@ class DocumentProcessor:
             vision_max_edge=vision_max_edge,
         )
 
-    def extract_metadata(self, file_path: str) -> Dict:
+    def extract_metadata(self, file_path: str) -> dict:
         ext = os.path.splitext(file_path)[1].lower()
         base = {
-            'title': os.path.basename(file_path),
-            'author': 'Unknown',
-            'date': None,
-            'file_type': ext,
+            "title": os.path.basename(file_path),
+            "author": "Unknown",
+            "date": None,
+            "file_type": ext,
         }
-        if ext == '.pdf':
+        if ext == ".pdf":
             base.update(self._pdf_metadata(file_path))
-        elif ext == '.docx':
+        elif ext == ".docx":
             base.update(self._docx_metadata(file_path))
-        if base['date'] is None:
-            base['date'] = datetime.now().isoformat()
+        if base["date"] is None:
+            base["date"] = datetime.now().isoformat()
         return base
 
     def clean_text(self, text: str) -> str:
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
         return text.strip()
 
-    def chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> list[str]:
         token_ids = self._tokenizer.encode(text)
         if not token_ids:
             return []
 
-        chunks: List[str] = []
+        chunks: list[str] = []
         step = self.chunk_size - self.overlap
         start = 0
         while start < len(token_ids):
@@ -243,7 +241,7 @@ class DocumentProcessor:
     def _extract_one_pdf_page(file_path: str, index: int, page: Any) -> str:
         try:
             return page.extract_text() or ""
-        except Exception as exc:  # noqa: BLE001 — pypdf raises diverse font-map / cmap errors
+        except Exception as exc:
             logger.warning(
                 "pdf_page_extract_failed path=%s page=%s error=%s",
                 file_path,
@@ -254,21 +252,21 @@ class DocumentProcessor:
 
     def _extract_docx_text(self, file_path: str) -> str:
         doc = Document(file_path)
-        return '\n'.join(para.text for para in doc.paragraphs)
+        return "\n".join(para.text for para in doc.paragraphs)
 
     def _extract_plain_text(self, file_path: str) -> str:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             return f.read()
 
     def _extract_html_text(self, file_path: str) -> str:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            soup = BeautifulSoup(f, 'html.parser')
-        return soup.get_text(separator=' ')
+        with open(file_path, encoding="utf-8") as f:
+            soup = BeautifulSoup(f, "html.parser")
+        return soup.get_text(separator=" ")
 
     # --- private metadata helpers ---
 
-    def _pdf_metadata(self, file_path: str) -> Dict:
-        result: Dict[str, Any] = {}
+    def _pdf_metadata(self, file_path: str) -> dict:
+        result: dict[str, Any] = {}
         try:
             with open(file_path, "rb") as handle:
                 meta = PdfReader(handle).metadata
@@ -287,16 +285,16 @@ class DocumentProcessor:
             logger.warning("pdf_metadata_failed path=%s error=%s", file_path, exc)
         return result
 
-    def _docx_metadata(self, file_path: str) -> Dict:
+    def _docx_metadata(self, file_path: str) -> dict:
         result = {}
         try:
             props = Document(file_path).core_properties
             if props.title:
-                result['title'] = props.title
+                result["title"] = props.title
             if props.author:
-                result['author'] = props.author
+                result["author"] = props.author
             if props.created:
-                result['date'] = props.created.isoformat()
+                result["date"] = props.created.isoformat()
         except Exception:
             pass
         return result

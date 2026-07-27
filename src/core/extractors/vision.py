@@ -13,7 +13,7 @@ _DEFAULT_MAX_EDGE = 4096
 
 def _image_dimensions(path: Path) -> tuple[int, int] | None:
     try:
-        from PIL import Image  # noqa: PLC0415
+        from PIL import Image
     except ImportError:
         logger.debug("pillow_unavailable path=%s", path)
         return None
@@ -45,10 +45,7 @@ def prepare_image(
         return f"[image skipped: unreadable file — {name}]"
 
     if size_bytes > vision_max_bytes:
-        return (
-            f"[image skipped: exceeds vision_max_bytes "
-            f"({size_bytes} > {vision_max_bytes}) — {name}]"
-        )
+        return f"[image skipped: exceeds vision_max_bytes " f"({size_bytes} > {vision_max_bytes}) — {name}]"
 
     dims = _image_dimensions(path)
     if dims is None:
@@ -56,9 +53,6 @@ def prepare_image(
 
     width, height = dims
     if width > vision_max_edge or height > vision_max_edge:
-        return (
-            f"[image skipped: exceeds vision_max_edge "
-            f"({width}x{height} > {vision_max_edge}px) — {name}]"
-        )
+        return f"[image skipped: exceeds vision_max_edge " f"({width}x{height} > {vision_max_edge}px) — {name}]"
 
     return f"[image: {name} {width}x{height}]"

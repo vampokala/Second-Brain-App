@@ -2,25 +2,91 @@
 
 from __future__ import annotations
 
-SUPPORTED_EXTENSIONS = frozenset({
-    ".pdf", ".docx", ".txt", ".md", ".html",
-    ".csv", ".tsv", ".xlsx", ".xlsm",
-    ".pptx",
-    ".ipynb",
-    ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".java", ".rs", ".rb", ".kt",
-    ".swift", ".cpp", ".cc", ".h", ".hpp", ".c", ".cs", ".scala", ".php",
-    ".sh", ".bash", ".ps1", ".sql", ".yaml", ".yml", ".json", ".toml",
-    ".tf", ".hcl", ".prisma",
-    # vision gated separately
-    ".png", ".jpg", ".jpeg", ".webp",
-})
+SUPPORTED_EXTENSIONS = frozenset(
+    {
+        ".pdf",
+        ".docx",
+        ".txt",
+        ".md",
+        ".html",
+        ".csv",
+        ".tsv",
+        ".xlsx",
+        ".xlsm",
+        ".pptx",
+        ".ipynb",
+        ".py",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".go",
+        ".java",
+        ".rs",
+        ".rb",
+        ".kt",
+        ".swift",
+        ".cpp",
+        ".cc",
+        ".h",
+        ".hpp",
+        ".c",
+        ".cs",
+        ".scala",
+        ".php",
+        ".sh",
+        ".bash",
+        ".ps1",
+        ".sql",
+        ".yaml",
+        ".yml",
+        ".json",
+        ".toml",
+        ".tf",
+        ".hcl",
+        ".prisma",
+        # vision gated separately
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+    }
+)
 
-TEXT_CODE_EXTENSIONS = frozenset({
-    ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".java", ".rs", ".rb", ".kt",
-    ".swift", ".cpp", ".cc", ".h", ".hpp", ".c", ".cs", ".scala", ".php",
-    ".sh", ".bash", ".ps1", ".sql", ".yaml", ".yml", ".json", ".toml",
-    ".tf", ".hcl", ".prisma",
-})
+TEXT_CODE_EXTENSIONS = frozenset(
+    {
+        ".py",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".go",
+        ".java",
+        ".rs",
+        ".rb",
+        ".kt",
+        ".swift",
+        ".cpp",
+        ".cc",
+        ".h",
+        ".hpp",
+        ".c",
+        ".cs",
+        ".scala",
+        ".php",
+        ".sh",
+        ".bash",
+        ".ps1",
+        ".sql",
+        ".yaml",
+        ".yml",
+        ".json",
+        ".toml",
+        ".tf",
+        ".hcl",
+        ".prisma",
+    }
+)
 
 TABULAR_EXTENSIONS = frozenset({".csv", ".tsv", ".xlsx", ".xlsm"})
 

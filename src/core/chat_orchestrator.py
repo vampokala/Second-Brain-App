@@ -162,7 +162,7 @@ class ChatOrchestrator:
     def _history_block(self, ctx: Any, msgs: list[Any]) -> str:
         prior = msgs[:-1]
         total = self._cfg.context.max_tokens
-        hist_chars_est = sum(len((m.content or "")) for m in prior) // 4
+        hist_chars_est = sum(len(m.content or "") for m in prior) // 4
         budget = allocate_budget(total, hist_chars_est, max(500, total // 2))
         return _format_history(
             summary=ctx.chat.summary_cache,
@@ -271,7 +271,7 @@ class ChatOrchestrator:
                     for piece in sess.iter_tokens():
                         buf.append(piece)
                     return sess.finalize(), "".join(buf)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 return exc
 
         return await asyncio.to_thread(_gen_stream)
@@ -353,7 +353,7 @@ class ChatOrchestrator:
             }
         return None
 
-    async def _stream_body(  # noqa: PLR0913
+    async def _stream_body(
         self,
         *,
         chat_id: uuid.UUID,

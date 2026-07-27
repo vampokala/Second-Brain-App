@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from src.api.settings_secrets import (
     ENV_WINS,
     extract_secret,
@@ -55,13 +53,12 @@ def test_hydrate_skips_when_env_already_set(monkeypatch):
 
     assert os.getenv("GITHUB_TOKEN") == "from-docker"
 
+
 def test_hydrate_noop_for_unknown_key(monkeypatch):
     assert hydrate_env_from_value("not_a_secret", {"secret": "x"}) is False
 
 
 def test_strip_connector_secrets_removes_token_fields():
-    cleaned = strip_connector_secrets(
-        {"email": "a@b.com", "token": "secret", "api_token": "x", "branch": "main"}
-    )
+    cleaned = strip_connector_secrets({"email": "a@b.com", "token": "secret", "api_token": "x", "branch": "main"})
     assert cleaned == {"email": "a@b.com", "branch": "main"}
     assert strip_connector_secrets(None) == {}

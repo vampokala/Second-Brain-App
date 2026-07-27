@@ -91,9 +91,7 @@ class McpCustomConnector(McpSourceConnector):
             return as_list(payload)
         extracted = dig(payload, items_path)
         if extracted is None:
-            raise ConnectorError(
-                f"mcp_custom items_path {items_path!r} not found in tool result."
-            )
+            raise ConnectorError(f"mcp_custom items_path {items_path!r} not found in tool result.")
         return as_list(extracted)
 
     async def fetch(self, cursor: dict | None) -> AsyncIterator[SourceItem]:

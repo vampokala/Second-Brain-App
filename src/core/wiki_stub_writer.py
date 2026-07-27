@@ -115,7 +115,7 @@ async def write_stub(raw_path: Path, vault_path: Path, summary: str) -> Path:
             post = frontmatter.Post(
                 "\n".join(
                     [
-                        f"> Auto-generated stub. Run `ingest <file>` in Claude to expand.",
+                        "> Auto-generated stub. Run `ingest <file>` in Claude to expand.",
                         "",
                         f"**One-line summary**: {one_line}",
                         "",

@@ -17,7 +17,7 @@ def test_file_sha256_retries_transient_deadlock(tmp_path: Path, monkeypatch) -> 
     calls = {"n": 0}
     real_open = Path.open
 
-    def flaky_open(self, *args, **kwargs):  # noqa: ANN001
+    def flaky_open(self, *args, **kwargs):
         if self == path and calls["n"] == 0:
             calls["n"] += 1
             raise OSError(35, "Resource deadlock avoided")
@@ -80,4 +80,3 @@ def test_update_manifest_entry_persists(tmp_path: Path) -> None:
     update_manifest_entry(manifest_file, "raw/y.txt", "abc", size=3, mtime_ms=1)
     loaded = load_manifest(manifest_file)
     assert loaded["files"]["raw/y.txt"]["digest"] == "abc"
-

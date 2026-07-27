@@ -32,10 +32,7 @@ class McpGitHubConnector(McpSourceConnector):
         sha = str(raw.get("sha") or raw.get("id") or "").strip()
         message = str(dig(raw, "commit.message") or raw.get("message") or "").strip()
         updated = str(
-            dig(raw, "commit.author.date")
-            or dig(raw, "commit.committer.date")
-            or raw.get("updated_at")
-            or ""
+            dig(raw, "commit.author.date") or dig(raw, "commit.committer.date") or raw.get("updated_at") or ""
         ).strip()
         if not sha or not updated:
             skip_malformed(self.source_type, "commit_missing_fields", raw)

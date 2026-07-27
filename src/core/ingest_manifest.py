@@ -17,7 +17,7 @@ _MANIFEST_LOCK = threading.Lock()
 
 def file_sha256(path: Path, *, retries: int = 3) -> str:
     """Return hex SHA-256 digest of file contents."""
-    from src.core.fs_retry import retry_os  # noqa: PLC0415
+    from src.core.fs_retry import retry_os
 
     def _hash() -> str:
         digest = hashlib.sha256()
@@ -38,7 +38,7 @@ def manifest_path(vault: Path) -> Path:
 
 def load_manifest(path: Path) -> dict[str, Any]:
     """Load manifest JSON; return empty dict when missing or invalid."""
-    from src.core.fs_retry import retry_os  # noqa: PLC0415
+    from src.core.fs_retry import retry_os
 
     if not path.is_file():
         return {"version": 1, "files": {}}
@@ -62,7 +62,7 @@ def load_manifest(path: Path) -> dict[str, Any]:
 
 def save_manifest(path: Path, data: dict[str, Any]) -> None:
     """Persist manifest atomically."""
-    from src.core.fs_retry import retry_os  # noqa: PLC0415
+    from src.core.fs_retry import retry_os
 
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")

@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.key_validator import validate_key
 from src.api.settings_secrets import (
     ENV_WINS,
@@ -89,9 +88,7 @@ async def update_settings(
         if not ok:
             raise HTTPException(status_code=400, detail=msg)
 
-    existing_rows = await session.execute(
-        select(AppSetting).where(AppSetting.key.in_(list(body.patch.keys())))
-    )
+    existing_rows = await session.execute(select(AppSetting).where(AppSetting.key.in_(list(body.patch.keys()))))
     existing_map = {r.key: r.value for r in existing_rows.scalars().all()}
 
     for k, v in body.patch.items():

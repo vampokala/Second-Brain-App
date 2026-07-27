@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from src.core.ingest_manifest import file_sha256, save_manifest, upsert_entry
 from src.core.ingest_paths import IngestPathError, resolve_vault_ingest_path
 from src.core.ingest_scan_preview import scan_vault_preview

@@ -50,6 +50,7 @@ async def test_sync_connector_ingests_items_from_mcp_server_and_advances_cursor(
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -105,6 +106,7 @@ async def test_sync_connector_reports_failed_status_when_tool_errors(monkeypatch
         raise ConnectorError("tool blew up")
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -150,6 +152,7 @@ async def test_resync_with_same_data_upserts_same_relpaths(monkeypatch):
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 

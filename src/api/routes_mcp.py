@@ -120,9 +120,7 @@ async def upsert_server(body: McpServerUpsertBody, request: Request) -> McpServe
     factory = async_session_factory()
     async with factory() as session:
         existing = (
-            await session.execute(
-                select(McpServer).where(McpServer.preset == body.preset, McpServer.name == name)
-            )
+            await session.execute(select(McpServer).where(McpServer.preset == body.preset, McpServer.name == name))
         ).scalar_one_or_none()
         if existing is None:
             existing = McpServer(

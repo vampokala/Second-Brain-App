@@ -14,8 +14,6 @@ from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
-from sse_starlette.sse import EventSourceResponse
-
 from src.api.chat_prefs import load_settings_map, vision_enabled_from_rows
 from src.api.models_ingest import (
     IngestItemResult,
@@ -28,11 +26,12 @@ from src.api.models_ingest import (
     ReindexResponse,
 )
 from src.api.sse_bus import SSEBus
-from src.core.ingest_pipeline import IngestPipeline
 from src.core.ingest_paths import IngestPathError, resolve_vault_ingest_path
+from src.core.ingest_pipeline import IngestPipeline
 from src.core.ingest_run_state import get_ingest_run_state
 from src.core.supported_formats import SUPPORTED_EXTENSIONS, VISION_EXTENSIONS, is_supported
 from src.db.session import async_session_factory
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +153,7 @@ async def ingest_paths(request: Request, body: IngestPathsBody) -> IngestScanSta
         except IngestPathError as exc:
             logger.warning("ingest_paths_invalid error=%s", exc)
             pipeline.emit_scan_failed(str(exc))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("ingest_paths_failed error=%s", exc)
             pipeline.emit_scan_failed(str(exc))
 
@@ -249,7 +248,7 @@ async def ingest_paste(request: Request, body: IngestTextBody) -> IngestResponse
 
 @router.post("/ingest/url", response_model=IngestResponse)
 async def ingest_remote(request: Request, body: IngestUrlBody) -> IngestResponse:
-    from src.core.url_extractor import UrlExtractError  # noqa: PLC0415
+    from src.core.url_extractor import UrlExtractError
 
     pipeline = _get_pipeline(request)
     get_ingest_run_state().clear()
@@ -274,7 +273,7 @@ async def reindex(request: Request) -> ReindexResponse:
     async def _job() -> None:
         try:
             await pipeline.reindex_atomic()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("reindex failed: %s", exc)
 
     asyncio.create_task(_job())
@@ -293,7 +292,7 @@ async def ingest_events(request: Request) -> Any:
                     break
                 try:
                     msg = await asyncio.wait_for(queue.get(), timeout=20.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield {"comment": "ping"}
                     continue
                 yield {"data": json.dumps(msg)}
@@ -310,7 +309,7 @@ async def reindex_sync(request: Request) -> ReindexResponse:
     try:
         await pipeline.reindex_atomic()
         return ReindexResponse(status="ok")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("reindex failed")
         return ReindexResponse(status="failed", detail=str(exc))
 

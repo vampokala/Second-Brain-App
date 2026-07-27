@@ -44,12 +44,7 @@ class McpGmailConnector(McpSourceConnector):
             return None
         msg_id = str(raw.get("id") or raw.get("message_id") or "").strip()
         subject = str(raw.get("subject") or raw.get("title") or "(no subject)").strip()
-        updated = str(
-            raw.get("internalDate")
-            or raw.get("date")
-            or raw.get("updated_at")
-            or ""
-        ).strip()
+        updated = str(raw.get("internalDate") or raw.get("date") or raw.get("updated_at") or "").strip()
         # Gmail internalDate is often epoch ms
         if updated.isdigit():
             try:
@@ -117,12 +112,7 @@ class McpGChatConnector(McpSourceConnector):
             return None
         msg_id = str(raw.get("name") or raw.get("id") or "").strip()
         text = str(raw.get("text") or raw.get("body") or raw.get("argumentText") or "").strip()
-        updated = str(
-            raw.get("createTime")
-            or raw.get("lastUpdateTime")
-            or raw.get("updated_at")
-            or ""
-        ).strip()
+        updated = str(raw.get("createTime") or raw.get("lastUpdateTime") or raw.get("updated_at") or "").strip()
         if not msg_id or not updated:
             skip_malformed(self.source_type, "missing_id_or_time", raw)
             return None

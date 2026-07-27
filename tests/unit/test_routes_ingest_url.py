@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from src.api.models_ingest import IngestItemResult
 from src.api.routes_ingest import router
 from src.core.url_extractor import UrlExtractError

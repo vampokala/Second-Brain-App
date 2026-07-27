@@ -58,6 +58,7 @@ async def test_fetch_maps_issue_payload_to_source_items_in_ascending_updated_ord
         return result.structuredContent
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -105,6 +106,7 @@ async def test_fetch_includes_since_from_cursor_in_tool_args(monkeypatch):
         return result.structuredContent
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -121,6 +123,7 @@ async def test_fetch_yields_nothing_when_result_empty(monkeypatch):
         return {"issues": []}
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -149,6 +152,7 @@ async def test_fetch_skips_malformed_item_and_continues(monkeypatch):
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -185,6 +189,7 @@ async def test_fetch_follows_pagination_token_until_exhausted(monkeypatch):
         return pages.pop(0)
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -234,6 +239,7 @@ async def test_source_item_relpath_stable_across_resyncs(monkeypatch):
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 

@@ -108,9 +108,7 @@ async def call_tool_json(
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
-        raise ConnectorError(
-            f"MCP tool {tool!r} returned unparseable payload"
-        ) from exc
+        raise ConnectorError(f"MCP tool {tool!r} returned unparseable payload") from exc
 
 
 async def build_mcp_auth(

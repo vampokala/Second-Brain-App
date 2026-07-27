@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from src.api.routes_settings import router as settings_router
 from src.db.session import get_async_session
 

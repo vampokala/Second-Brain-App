@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -69,16 +68,14 @@ def _fetch_bytes(url: str) -> tuple[bytes, str, str | None]:
     return raw, ctype, encoding
 
 
-def _extract_html(html: str, url: str) -> tuple[Optional[str], str]:
-    title: Optional[str] = None
+def _extract_html(html: str, url: str) -> tuple[str | None, str]:
+    title: str | None = None
     meta = trafilatura.extract_metadata(html)
     if meta is not None:
         t = getattr(meta, "title", None)
         if t:
             title = str(t).strip()
-    text = (
-        trafilatura.extract(html, url=url, include_comments=False, include_tables=False) or ""
-    ).strip()
+    text = (trafilatura.extract(html, url=url, include_comments=False, include_tables=False) or "").strip()
     if text:
         return title, text
     soup = BeautifulSoup(html, "html.parser")
@@ -93,7 +90,7 @@ def extract_url(url: str) -> ExtractedPage:
     raw, ctype, encoding = _fetch_bytes(url)
     html = raw.decode(encoding or "utf-8", errors="replace")
 
-    title: Optional[str] = None
+    title: str | None = None
     text = ""
     if "html" in ctype or "<html" in html[:2000].lower():
         title, text = _extract_html(html, url)

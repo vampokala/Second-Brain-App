@@ -48,6 +48,9 @@ services:
       JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
       CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      GITHUB_OAUTH_SCOPES: ${GITHUB_OAUTH_SCOPES:-repo read:org read:user user:email}
     depends_on:
       postgres:
         condition: service_healthy

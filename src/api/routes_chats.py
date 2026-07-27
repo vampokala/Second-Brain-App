@@ -9,8 +9,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sse_starlette.sse import EventSourceResponse
-
 from src.api.chat_prefs import brave_api_key_from_rows, load_settings_map, persona_prefs_from_rows
 from src.api.models_chats import (
     ChatCreateBody,
@@ -32,6 +30,7 @@ from src.core.title_generator import generate_title
 from src.core.wiki_analysis_writer import save_answer_to_wiki
 from src.db.session import get_async_session
 from src.utils.sb_env import load_second_brain_settings
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 

@@ -23,6 +23,20 @@ async function pollUntilConnected(id: string): Promise<boolean> {
   return false
 }
 
+async function openAuthWindow(url: string): Promise<Window | null> {
+  // Avoid the "popup" feature string — browsers often block it. Prefer a tab.
+  const win = window.open(url, '_blank', 'noopener,noreferrer')
+  if (win) {
+    try {
+      win.focus()
+    } catch {
+      // ignore
+    }
+    return win
+  }
+  return null
+}
+
 function ServerCard({
   server,
   onChanged,
@@ -32,6 +46,7 @@ function ServerCard({
 }) {
   const { toast } = useToast()
   const [busy, setBusy] = useState(false)
+  const [authLink, setAuthLink] = useState<string | null>(null)
 
   const ensureRegistered = async (): Promise<string> => {
     if (!server.id.startsWith('preset:')) return server.id
@@ -47,6 +62,7 @@ function ServerCard({
   const connect = useMutation({
     mutationFn: async () => {
       setBusy(true)
+      setAuthLink(null)
       const id = await ensureRegistered()
       const result = await mcpClient.connectServer(id)
       // Token / sidecar verify: no browser popup.
@@ -54,7 +70,10 @@ function ServerCard({
         const status = await mcpClient.serverStatus(id)
         return { connected: status.connected }
       }
-      window.open(result.authorization_url, '_blank', 'popup,width=600,height=700')
+      const win = await openAuthWindow(result.authorization_url)
+      if (!win) {
+        setAuthLink(result.authorization_url)
+      }
       const connected = await pollUntilConnected(id)
       return { connected }
     },
@@ -62,12 +81,13 @@ function ServerCard({
       setBusy(false)
       onChanged()
       if (r.connected) {
+        setAuthLink(null)
         toast({ title: 'MCP server connected', tone: 'success' })
       } else {
         toast({
           title: 'Connection timed out',
           description:
-            'Finish signing in in the popup, then try Connect again. For GitHub you can also use “Use API token”.',
+            'Finish signing in in the browser tab, then try again. For GitHub, prefer “Use API token”.',
           tone: 'error',
         })
       }
@@ -154,21 +174,43 @@ function ServerCard({
         <div className="flex flex-wrap gap-2">
           {!server.connected ? (
             <>
-              <Button size="sm" onClick={() => connect.mutate()} disabled={busy || connect.isPending}>
-                <Link2 className="h-4 w-4" />
-                {busy ? 'Connecting…' : 'Connect'}
-              </Button>
-              {server.authMode === 'oauth' &&
-              (server.preset === 'github' || server.preset === 'atlassian') ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => connectWithToken.mutate()}
-                >
-                  Use API token
-                </Button>
-              ) : null}
+              {server.preset === 'github' ? (
+                <>
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => connectWithToken.mutate()}
+                  >
+                    <Link2 className="h-4 w-4" />
+                    {busy ? 'Connecting…' : 'Use API token'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => connect.mutate()}
+                    disabled={busy || connect.isPending}
+                  >
+                    OAuth (needs GitHub App)
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" onClick={() => connect.mutate()} disabled={busy || connect.isPending}>
+                    <Link2 className="h-4 w-4" />
+                    {busy ? 'Connecting…' : 'Connect'}
+                  </Button>
+                  {server.authMode === 'oauth' && server.preset === 'atlassian' ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => connectWithToken.mutate()}
+                    >
+                      Use API token
+                    </Button>
+                  ) : null}
+                </>
+              )}
             </>
           ) : (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -176,6 +218,16 @@ function ServerCard({
               Ready for sync
             </span>
           )}
+          {authLink ? (
+            <a
+              className="text-xs text-primary underline"
+              href={authLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open sign-in link (popup blocked)
+            </a>
+          ) : null}
           {!server.id.startsWith('preset:') ? (
             <Button
               size="sm"

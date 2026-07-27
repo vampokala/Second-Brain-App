@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
-
 from src.api.models_chats import MemoryResponse, MemoryUpdateResponse
 from src.core.rolling_memory import load_memory_excerpt, memory_path, roll_up_from_text
 from src.utils.config import load_config

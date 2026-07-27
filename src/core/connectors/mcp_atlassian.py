@@ -148,12 +148,7 @@ class McpConfluenceConnector(McpSourceConnector):
             return raw, body
         if not isinstance(detail, dict):
             return raw, body
-        body = str(
-            detail.get("body")
-            or dig(detail, "body.storage.value")
-            or detail.get("content")
-            or ""
-        )
+        body = str(detail.get("body") or dig(detail, "body.storage.value") or detail.get("content") or "")
         return {**raw, **detail}, body
 
     def _next_page_token(self, payload: Any) -> str | None:

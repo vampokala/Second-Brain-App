@@ -7,7 +7,6 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from src.api.settings_secrets import extract_secret
 from src.core.chat_orchestrator import ChatPersonaPrefs
 from src.core.personas import (

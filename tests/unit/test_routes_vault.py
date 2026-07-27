@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
+from urllib.parse import quote
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from urllib.parse import quote
-
 from src.api.routes_vault import router
 from src.db.session import get_async_session
 
@@ -25,7 +24,7 @@ def vault_client(monkeypatch, tmp_path):
     fake.commit = AsyncMock()
     fake.merge = AsyncMock()
 
-    async def _exec(_stmt):  # noqa: ANN001
+    async def _exec(_stmt):
         m = MagicMock()
         m.all.return_value = [("raw/notes/a.md",)]
         m.scalar_one.return_value = 3

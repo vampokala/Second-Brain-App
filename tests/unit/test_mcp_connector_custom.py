@@ -28,7 +28,9 @@ def _server():
 def _opener(payload):
     class Session:
         async def list_tools(self):
-            return SimpleNamespace(tools=[SimpleNamespace(name="list_commits"), SimpleNamespace(name="search_gmail_messages")])
+            return SimpleNamespace(
+                tools=[SimpleNamespace(name="list_commits"), SimpleNamespace(name="search_gmail_messages")]
+            )
 
         async def call_tool(self, name, args):
             return SimpleNamespace(structuredContent=payload, isError=False, content=[])
@@ -57,6 +59,7 @@ async def test_github_fetch_maps_commits(monkeypatch):
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -91,6 +94,7 @@ async def test_gmail_fetch_builds_after_query(monkeypatch):
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -123,6 +127,7 @@ async def test_fetch_maps_items_via_field_map(monkeypatch):
         }
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -160,6 +165,7 @@ async def test_fetch_substitutes_since_placeholder_in_args(monkeypatch):
         return []
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -181,6 +187,7 @@ async def test_fetch_wraps_plain_string_result_as_single_item(monkeypatch):
         return "hello world"
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -203,6 +210,7 @@ async def test_fetch_raises_connector_error_when_items_path_missing(monkeypatch)
         return {"other": []}
 
     monkeypatch.setattr("src.core.connectors.mcp_base.call_tool_json", fake_call)
+
     async def _no_auth(*a, **k):
         return None
 
@@ -252,9 +260,7 @@ def test_github_preset_url_has_no_trailing_slash():
 
     assert not PRESETS["github"].url.endswith("/")
     assert resolve_preset_url("github") == "https://api.githubcopilot.com/mcp"
-    assert normalize_mcp_url("https://api.githubcopilot.com/mcp/") == (
-        "https://api.githubcopilot.com/mcp"
-    )
+    assert normalize_mcp_url("https://api.githubcopilot.com/mcp/") == ("https://api.githubcopilot.com/mcp")
 
 
 def test_preset_connector_types_all_exist_in_registry():

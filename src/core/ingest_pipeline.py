@@ -11,13 +11,13 @@ import shutil
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import urlparse
 
 from sqlalchemy import delete, text
 from sqlalchemy.orm import Session, sessionmaker
-
 from src.api.models_ingest import IngestItemResult, IngestScanPreviewResponse, IngestScanSummary
 from src.api.sse_bus import SSEBus
 from src.core.bm25_index import BM25Index
@@ -299,7 +299,7 @@ class IngestPipeline:
                     self._pg.add_documents(COLLECTION_NAME, docs, skip_embedding=False)
                 else:
                     raise RuntimeError("ollama unavailable")
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning("Embedding failed for %s, queuing: %s", relpath, exc)
                 self._pg.delete_source_path(relpath)
                 self._pg.add_documents(COLLECTION_NAME, docs, skip_embedding=True)
@@ -401,7 +401,7 @@ class IngestPipeline:
                     mtime_ms=int(stat.st_mtime * 1000),
                 )
             return out
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("ingest failed %s", abs_path)
             return IngestItemResult(path=relpath_str, status="failed", chunk_count=0, error=str(exc))
 
@@ -453,7 +453,7 @@ class IngestPipeline:
         if status == "ingested":
             try:
                 await self._wiki_after_ingest(abs_path, relpath_str, out)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 # Wiki stub/log is best-effort; never fail the ingest/scan batch.
                 logger.warning(
                     "wiki_after_ingest_failed path=%s error=%s",
@@ -482,7 +482,7 @@ class IngestPipeline:
         return await self.ingest_file(dest)
 
     async def ingest_url(self, url: str, relpath: str | None) -> IngestItemResult:
-        from src.core.url_extractor import extract_url  # noqa: PLC0415
+        from src.core.url_extractor import extract_url
 
         page = await asyncio.to_thread(extract_url, url)
         parsed = urlparse(url)
@@ -490,9 +490,7 @@ class IngestPipeline:
         safe = re.sub(r"[^\w\-]+", "_", slug, flags=re.UNICODE)[:80]
         rel = relpath or f"raw/imports/{safe}.md"
         safe_title = page.title.replace("\\", "\\\\").replace('"', '\\"')
-        frontmatter = "\n".join(
-            ["---", f'title: "{safe_title}"', f"source_url: {url}", "---", "", page.text]
-        )
+        frontmatter = "\n".join(["---", f'title: "{safe_title}"', f"source_url: {url}", "---", "", page.text])
         return await self.ingest_text(rel, frontmatter)
 
     async def remove_path(self, relpath: str) -> None:
@@ -542,11 +540,7 @@ class IngestPipeline:
         total: int,
     ) -> IngestScanSummary:
         summary = _summarize_results(results)
-        failed_paths = [
-            {"path": r.path, "error": r.error or "failed"}
-            for r in results
-            if r.status == "failed"
-        ]
+        failed_paths = [{"path": r.path, "error": r.error or "failed"} for r in results if r.status == "failed"]
         logger.info(
             "vault_scan_complete total=%s ingested=%s skipped=%s failed=%s cancelled=%s",
             summary.total,
@@ -593,9 +587,7 @@ class IngestPipeline:
             if norm in seen:
                 continue
             seen.add(norm)
-            resolved.append(
-                resolve_vault_ingest_path(self._vault, norm, vision_enabled=vision)
-            )
+            resolved.append(resolve_vault_ingest_path(self._vault, norm, vision_enabled=vision))
 
         logger.info("vault_ingest_paths_waiting_for_lock selected=%s", len(resolved))
         async with self._exclusive:
@@ -686,7 +678,7 @@ class IngestPipeline:
                     vision_max_bytes=_VISION_MAX_BYTES,
                     vision_max_edge=_VISION_MAX_EDGE,
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning("reindex skip %s: %s", abs_path, exc)
                 continue
             if result is None:
@@ -756,7 +748,7 @@ class IngestPipeline:
                     try:
                         vec = self._pg.generate_embedding(doc["text"])
                         lit = "[" + ",".join(f"{x:.8f}" for x in vec) + "]"
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         lit = None
                 _insert_shadow_row(session, table_ref, doc, lit)
             session.commit()
@@ -781,7 +773,7 @@ class IngestPipeline:
             await asyncio.to_thread(self._reindex_atomic_sync)
 
     async def drain_embed_queue(self) -> int:
-        from sqlalchemy import select  # noqa: PLC0415
+        from sqlalchemy import select
 
         fac = self._async_factory()
         async with fac() as session:
@@ -795,7 +787,7 @@ class IngestPipeline:
                 n += 1
             else:
                 async with fac() as s:
-                    from sqlalchemy import update  # noqa: PLC0415
+                    from sqlalchemy import update
 
                     await s.execute(
                         update(EmbedQueue)
