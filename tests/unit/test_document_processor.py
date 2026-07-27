@@ -42,8 +42,17 @@ class TestExtractText:
         finally:
             os.unlink(path)
 
+    def test_csv_extraction(self, processor):
+        path = _write_temp_file("a,b\n1,2\n", ".csv")
+        try:
+            text = processor.extract_text(path)
+            assert "1" in text
+            assert "2" in text
+        finally:
+            os.unlink(path)
+
     def test_unsupported_format_raises(self, processor):
-        path = _write_temp_file("data", ".csv")
+        path = _write_temp_file("data", ".xyz")
         try:
             with pytest.raises(ValueError, match="Unsupported file type"):
                 processor.extract_text(path)
@@ -161,6 +170,46 @@ Outro text here.
             os.unlink(path)
 
 
+class TestPdfExtraction:
+    def test_extract_pdf_skips_failing_page(self, processor, monkeypatch):
+        class _Page:
+            def __init__(self, text: str | None = None, *, boom: bool = False):
+                self._text = text
+                self._boom = boom
+
+            def extract_text(self) -> str:
+                if self._boom:
+                    raise UnboundLocalError("cannot access local variable 'cm'")
+                return self._text or ""
+
+        class _Reader:
+            def __init__(self, _handle):
+                self.pages = [_Page("hello "), _Page(boom=True), _Page("world")]
+
+        monkeypatch.setattr("src.core.document_processor.PdfReader", _Reader)
+        path = _write_temp_file("%PDF-1.4 stub", ".pdf")
+        try:
+            text = processor.extract_text(path)
+            assert "hello" in text
+            assert "world" in text
+        finally:
+            os.unlink(path)
+
+    def test_extract_pdf_unreadable_raises(self, processor, monkeypatch):
+        from pypdf.errors import PdfReadError
+
+        def _boom(_handle):
+            raise PdfReadError("bad pdf")
+
+        monkeypatch.setattr("src.core.document_processor.PdfReader", _boom)
+        path = _write_temp_file("%PDF-1.4 stub", ".pdf")
+        try:
+            with pytest.raises(ValueError, match="unreadable PDF"):
+                processor.extract_text(path)
+        finally:
+            os.unlink(path)
+
+
 class TestProcessDocument:
     def test_returns_dict_with_expected_keys(self, processor):
         path = _write_temp_file("Hello world content", ".txt")
@@ -185,6 +234,16 @@ class TestProcessDocument:
     def test_different_files_not_flagged_as_duplicate(self, processor):
         path1 = _write_temp_file("Content A", ".txt")
         path2 = _write_temp_file("Content B", ".txt")
+        try:
+            assert processor.process_document(path1) is not None
+            assert processor.process_document(path2) is not None
+        finally:
+            os.unlink(path1)
+            os.unlink(path2)
+
+    def test_identical_content_different_paths_both_ingest(self, processor):
+        path1 = _write_temp_file("Same body", ".txt")
+        path2 = _write_temp_file("Same body", ".txt")
         try:
             assert processor.process_document(path1) is not None
             assert processor.process_document(path2) is not None

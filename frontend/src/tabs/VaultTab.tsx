@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tree } from 'react-arborist'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { MessageSquare } from 'lucide-react'
 
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import { parseVaultPathFromHash } from '../lib/vaultDeepLink'
 
 type FileNode = {
@@ -25,11 +28,18 @@ function toArborist(nodes: FileNode[]): ArborNode[] {
   }))
 }
 
-export function VaultTab() {
+type Props = {
+  onAskAbout?: (prompt: string) => void
+}
+
+export function VaultTab({ onAskAbout }: Props) {
   const [tree, setTree] = useState<FileTree | null>(null)
   const [filter, setFilter] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
-  const [content, setContent] = useState<{ body: string; frontmatter: Record<string, unknown> | null } | null>(null)
+  const [content, setContent] = useState<{
+    body: string
+    frontmatter: Record<string, unknown> | null
+  } | null>(null)
   const [fmOpen, setFmOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -79,8 +89,7 @@ export function VaultTab() {
   useEffect(() => {
     const el = treeBoxRef.current
     if (!el) return
-    const update = () =>
-      setTreeSize({ width: el.clientWidth, height: el.clientHeight })
+    const update = () => setTreeSize({ width: el.clientWidth, height: el.clientHeight })
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
@@ -88,16 +97,16 @@ export function VaultTab() {
   }, [])
 
   return (
-    <div className="app-card grid min-h-0 flex-1 grid-cols-1 gap-4 p-5 md:grid-cols-12">
+    <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-12">
       <div className="flex min-h-0 flex-col md:col-span-4">
         <h2 className="mb-3 text-lg font-bold">Vault</h2>
-        <input
-          className="mb-2 w-full rounded-lg border border-border px-3 py-2 text-sm"
+        <Input
+          className="mb-2"
           placeholder="Filter paths…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {error ? <div className="text-sm text-destructive">{error}</div> : null}
+        {error ? <div className="mb-2 text-sm text-destructive">{error}</div> : null}
         <div
           ref={treeBoxRef}
           className="min-h-[20rem] flex-1 overflow-hidden rounded-lg border border-border"
@@ -118,22 +127,47 @@ export function VaultTab() {
                   style={style}
                   ref={dragHandle}
                   title={node.data.name}
-                  className="flex cursor-pointer items-center overflow-hidden whitespace-nowrap text-ellipsis text-sm"
+                  className="flex cursor-pointer items-center overflow-hidden text-ellipsis whitespace-nowrap text-sm"
                 >
                   {node.data.name}
                 </div>
               )}
             </Tree>
           ) : (
-            <div className="p-4 text-sm text-muted-foreground">No files (configure DATABASE_URL + vault).</div>
+            <div className="space-y-2 p-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">No files yet</p>
+              <p>Add documents from Knowledge → Add, or sync a connector.</p>
+            </div>
           )}
         </div>
       </div>
       <div className="flex min-h-0 flex-col md:col-span-8">
-        <div className="mb-2 text-sm font-medium text-muted-foreground">{selected || 'Select a file'}</div>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            {selected || 'Select a file'}
+          </div>
+          {selected && onAskAbout ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                onAskAbout(
+                  `Tell me about the document at ${selected}. Summarize key points and cite sources.`,
+                )
+              }
+            >
+              <MessageSquare className="h-4 w-4" />
+              Ask about this file
+            </Button>
+          ) : null}
+        </div>
         {content?.frontmatter ? (
           <div className="mb-2">
-            <button type="button" className="text-xs font-semibold text-primary" onClick={() => setFmOpen(!fmOpen)}>
+            <button
+              type="button"
+              className="text-xs font-semibold text-primary"
+              onClick={() => setFmOpen(!fmOpen)}
+            >
               {fmOpen ? 'Hide' : 'Show'} frontmatter
             </button>
             {fmOpen ? (
@@ -143,8 +177,10 @@ export function VaultTab() {
             ) : null}
           </div>
         ) : null}
-        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-card p-4 text-sm">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content?.body || '_No file selected_'}</ReactMarkdown>
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background p-4 text-sm">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {content?.body || '_Select a file to preview_'}
+          </ReactMarkdown>
         </div>
       </div>
     </div>

@@ -70,12 +70,20 @@ async def write_stub(raw_path: Path, vault_path: Path, summary: str) -> Path:
     stub_path = _stub_path_for_raw(vault_path, raw_relpath)
     section = stub_path.parent.name
 
-    body_scan = await asyncio.to_thread(raw_path.read_text, encoding="utf-8", errors="replace")
-    fm_raw = frontmatter.loads(body_scan)
-    body_only = fm_raw.content or ""
-    title = str(fm_raw.metadata.get("title") or "") or _derive_title(raw_path, body_only)
+    body_only = ""
+    title = ""
+    if raw_path.suffix.lower() == ".md":
+        body_scan = await asyncio.to_thread(raw_path.read_text, encoding="utf-8", errors="replace")
+        fm_raw = frontmatter.loads(body_scan)
+        body_only = fm_raw.content or ""
+        title = str(fm_raw.metadata.get("title") or "") or _derive_title(raw_path, body_only)
+    else:
+        title = _derive_title(raw_path, "")
     today = date.today().isoformat()
     one_line = _first_paragraph_summary(summary or body_only)
+    if not one_line:
+        ext = raw_path.suffix.lstrip(".").upper() or "FILE"
+        one_line = f"Ingested {ext} source."
 
     lock = await _section_lock(section)
     async with lock:

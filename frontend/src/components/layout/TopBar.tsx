@@ -1,9 +1,9 @@
+import { Database, FileText, Monitor, Moon, Sun } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { Database, FileText, Moon, Sun } from 'lucide-react'
 
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
-import { useTheme } from '../theme/ThemeProvider'
+import { useTheme, type ThemePreference } from '../theme/ThemeProvider'
 import { SECTION_TITLES, type Section } from './sections'
 
 type VaultStats = {
@@ -25,13 +25,19 @@ async function fetchVaultStats(): Promise<VaultStats | null> {
 
 const SECTIONS: Section[] = ['ask', 'knowledge', 'settings', 'help']
 
+const THEME_LABEL: Record<ThemePreference, string> = {
+  light: 'Light',
+  system: 'System',
+  dark: 'Dark',
+}
+
 type Props = {
   active: Section
   onSelect: (s: Section) => void
 }
 
 export function TopBar({ active, onSelect }: Props) {
-  const { theme, toggleTheme } = useTheme()
+  const { theme, resolvedTheme, cycleTheme } = useTheme()
   const { data: stats } = useQuery({
     queryKey: ['vault-stats'],
     queryFn: fetchVaultStats,
@@ -39,11 +45,12 @@ export function TopBar({ active, onSelect }: Props) {
     refetchInterval: 60_000,
   })
 
+  const ThemeIcon = theme === 'system' ? Monitor : resolvedTheme === 'dark' ? Sun : Moon
+
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-card/80 px-4 py-3 backdrop-blur md:px-6">
       <div className="flex items-center gap-3">
         <h1 className="text-base font-bold tracking-tight text-foreground">{SECTION_TITLES[active]}</h1>
-        {/* Mobile section switch (sidebar is hidden < md) */}
         <select
           className="rounded-lg border border-input bg-card px-2 py-1 text-sm text-foreground shadow-sm md:hidden"
           value={active}
@@ -74,11 +81,11 @@ export function TopBar({ active, onSelect }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          onClick={cycleTheme}
+          aria-label={`Theme: ${THEME_LABEL[theme]}. Click to cycle.`}
+          title={`Theme: ${THEME_LABEL[theme]}`}
         >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <ThemeIcon className="h-4 w-4" />
         </Button>
       </div>
     </header>

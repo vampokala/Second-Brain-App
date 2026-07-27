@@ -65,9 +65,32 @@ class SendMessageBody(BaseModel):
     scope: str | None = None
     parent_id: uuid.UUID | None = None
     provider_api_key: str | None = None
+    grounding_mode: str = "corpus_only"
+    include_web_search: bool = False
 
 
 class EditMessageBody(BaseModel):
+    content: str
+
+
+class SaveToWikiBody(BaseModel):
+    title: str | None = None
+    include_citations: bool = True
+    reingest: bool = True
+
+
+class SaveToWikiResponse(BaseModel):
+    path: str
+    ingested: bool = False
+    chunk_count: int = 0
+
+
+class MemoryResponse(BaseModel):
+    content: str
+    path: str
+
+
+class MemoryUpdateResponse(BaseModel):
     content: str
 
 

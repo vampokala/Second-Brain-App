@@ -1,15 +1,47 @@
+# Keep the Docker build context small (slow step is "transferring context").
 .git
 .gitignore
 .venv
+.venv/
+**/.venv/
 __pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-data/embeddings/
-data/documents/uploads/
+.tox/
+.coverage
+coverage/
+htmlcov/
+.cursor/
+.claude/
+.idea/
+.vscode/
 *.log
 .DS_Store
+
+# Frontend deps are installed inside the image
 node_modules/
+**/node_modules/
+frontend/node_modules/
+frontend/coverage/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.vite/
+
+# Local data / caches not needed in the API image
+data/embeddings/
+data/documents/uploads/
+backups/
+reports/
+evals/
+*.sqlite3
+
+# Env / secrets (compose injects .env separately)
+.env
+.env.*
+!.env.example

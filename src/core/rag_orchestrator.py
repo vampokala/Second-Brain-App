@@ -55,6 +55,7 @@ class QueryRequest:
 
     retrieval_query: Optional[str] = None
     prefetched_retrieval: Optional[tuple] = None
+    skip_retrieval: bool = False
 
 
 @dataclass
@@ -215,6 +216,10 @@ class RAGOrchestrator:
         trace: Any,
         step_latencies: Dict[str, float],
     ) -> tuple[Union[List[RetrievalResult], List[RankedResult]], List[RetrievalResult]]:
+        if req.skip_retrieval:
+            step_latencies.setdefault("retrieval", 0.0)
+            step_latencies.setdefault("reranking", 0.0)
+            return [], []
         if req.prefetched_retrieval is not None:
             step_latencies.setdefault("retrieval", 0.0)
             step_latencies.setdefault("reranking", 0.0)

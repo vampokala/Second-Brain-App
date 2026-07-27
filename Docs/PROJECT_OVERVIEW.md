@@ -22,10 +22,10 @@ team systems.
 The primary surface is a **React single-page app** served by the API, organized
 into four sections:
 
-- **Ask** — multi-turn Chat and single-shot Quick ask (with citations + retrieval details).
-- **Knowledge** — Browse the indexed vault, Add documents (file / text / URL), and configure Connectors.
-- **Settings** — LLM provider keys and default models.
-- **Help** — how scopes, citations, and scoring work.
+- **Ask** — multi-turn chat with personas, grounding toggles, Sources drawer, save-to-wiki / rolling memory, truthfulness, and pin / regenerate / edit-fork.
+- **Knowledge** — Browse (Ask about this file), Add (wide formats, cancel, capabilities, Cursor-assist APIs), Connectors (sync + ask about synced).
+- **Settings** — LLM keys, connector tokens, chat persona, Brave / web / vision / memory.
+- **Help** — demo-script cards + `/observability/dashboard`.
 
 A **FastAPI** backend exposes the same capabilities over HTTP (see
 [`Second_Brain_ClaudProject_Context.md`](Second_Brain_ClaudProject_Context.md) §4
@@ -65,9 +65,11 @@ fusion → optional cross-encoder reranking → context optimization → provide
 (Ollama / OpenAI / Anthropic / Gemini) → answer with citations mapped to chunk IDs
 and verification-scored.
 
-**Ingestion lifecycle:** files/text/URLs (and connector records) are parsed and
+**Ingestion lifecycle:** files/text/URLs (and connector records) are parsed by
+format-specific extractors (including tabular / slides / notebooks / code),
 chunked by `DocumentProcessor`, written to the BM25 snapshot and `document_chunks`
-vectors, with metadata in `vault_files` and progress streamed over SSE.
+vectors, with content-hash skip via `.ingest-manifest.json`, metadata in
+`vault_files`, and progress streamed over SSE.
 
 ## Connectors & scheduler
 

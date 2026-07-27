@@ -26,6 +26,7 @@ export default defineConfig({
       '/chats': { target: devApiTarget, changeOrigin: true },
       '/settings': { target: devApiTarget, changeOrigin: true },
       '/connectors': { target: devApiTarget, changeOrigin: true },
+      '/mcp': { target: devApiTarget, changeOrigin: true },
     },
   },
   test: {

@@ -7,7 +7,18 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-ConnectorType = Literal["github", "jira", "confluence", "slack"]
+ConnectorType = Literal[
+    "github",
+    "jira",
+    "confluence",
+    "slack",
+    "mcp_jira",
+    "mcp_confluence",
+    "mcp_github",
+    "mcp_gmail",
+    "mcp_gchat",
+    "mcp_custom",
+]
 
 
 class ConnectorUpsertBody(BaseModel):

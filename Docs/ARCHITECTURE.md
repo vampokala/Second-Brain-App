@@ -48,26 +48,31 @@ Flow details:
 4. Ingest events stream via SSE and persist to DB.
 5. If Ollama is unavailable, embeddings are deferred into `embed_queue`.
 
-## Connector Sync (GitHub / JIRA / Confluence / Slack)
+## Connector Sync (MCP + legacy HTTP)
 
-External team sources plug in through `SourceConnector` implementations. Each
-connector fetches records, normalizes them to markdown, and routes them through
-the **same** `IngestPipeline.ingest_text`, so synced items are indexed, retrieved,
-and cited exactly like local documents. A per-connector scheduler triggers
-incremental syncs on each connector's cadence.
+External team sources plug in through `SourceConnector` implementations. Prefer
+**MCP connectors** (`mcp_jira`, `mcp_confluence`, `mcp_github`, `mcp_gmail`,
+`mcp_gchat`, `mcp_custom`) which authenticate via OAuth 2.1 against remote MCP
+servers (Atlassian, GitHub) or a local Google Workspace MCP sidecar. Legacy
+token-based HTTP connectors (`github`, `jira`, `confluence`, `slack`) remain
+available. Each connector fetches records, normalizes them to markdown, and
+routes them through the **same** `IngestPipeline.ingest_text`, so synced items
+are indexed, retrieved, and cited exactly like local documents. A per-connector
+scheduler triggers incremental syncs on each connector's cadence.
 
 ```mermaid
 flowchart TB
+  MCP[MCP servers + OAuth tokens] --> REG[Connector registry]
   STATE[(connector_sync_state)] --> SCHED[Per-connector scheduler]
-  SCHED --> REG[Connector registry]
-  REG --> GH[GitHub: commits, issues/PRs]
-  REG --> JR[JIRA: issues via JQL]
-  REG --> CF[Confluence: space pages]
-  REG --> SL[Slack: messages + thread replies]
-  GH --> NORM[Normalize to markdown + frontmatter]
-  JR --> NORM
-  CF --> NORM
-  SL --> NORM
+  SCHED --> REG
+  REG --> MJ[mcp_jira / mcp_confluence]
+  REG --> MG[mcp_github / mcp_gmail / mcp_gchat]
+  REG --> MC[mcp_custom]
+  REG --> LEG[Legacy github/jira/confluence/slack]
+  MJ --> NORM[Normalize to markdown + frontmatter]
+  MG --> NORM
+  MC --> NORM
+  LEG --> NORM
   NORM --> ING[IngestPipeline.ingest_text]
   ING --> IDX[BM25 snapshot + pgvector + vault_files]
   SCHED -. cursor advance / status .-> STATE
@@ -75,11 +80,17 @@ flowchart TB
 ```
 
 Flow details:
-1. Scheduler ticks (~60s); a connector is due when `now - last_sync_at >= sync_interval_min` (an in-flight set prevents overlap).
-2. The registry builds the connector; the secret is read from an env var named by `config.token_env` (never stored in the DB).
-3. Records are fetched **incrementally** from the stored cursor, normalized, and written to `raw/connectors/<type>/<resource>/<id>.md`.
-4. Each item is ingested through the standard pipeline; progress publishes on the shared ingest SSE bus.
-5. On success the cursor advances and `last_status`/`item_count` persist; a failed sync leaves the cursor unchanged so the window retries.
+1. User connects an MCP server via `POST /mcp/servers/{id}/connect` (OAuth popup) or token fallback.
+2. Scheduler ticks (~60s); a connector is due when `now - last_sync_at >= sync_interval_min` (an in-flight set prevents overlap).
+3. The registry builds the connector; MCP auth is resolved from `mcp_oauth_tokens` or an env token (`config.server_id` points at `mcp_servers`).
+4. Records are fetched **incrementally** from the stored cursor, normalized, and written to `raw/connectors/<type>/<resource>/<id>.md`.
+5. Each item is ingested through the standard pipeline; progress publishes on the shared ingest SSE bus.
+6. On success the cursor advances and `last_status`/`item_count` persist; a failed sync leaves the cursor unchanged so the window retries.
+
+OAuth callback URL (browser-reachable): `MCP_OAUTH_REDIRECT_URI` defaulting to
+`http://localhost:8000/mcp/oauth/callback`. Google Workspace uses
+`docker compose --profile mcp up workspace-mcp` with `GOOGLE_OAUTH_CLIENT_ID` /
+`GOOGLE_OAUTH_CLIENT_SECRET`.
 
 ## Chat Query Pipeline
 
@@ -103,7 +114,9 @@ flowchart TB
 - `src/api/routes_vault.py`: file browsing, file read, stats.
 - `src/api/routes_settings.py`: persisted settings patch/read.
 - `src/api/routes_connectors.py`: connector CRUD, test, manual sync, status.
-- `src/core/connectors/`: connector layer — `base.py` (`SourceConnector`, `SourceItem`), `github.py`, `jira.py`, `confluence.py`, `slack.py`, `registry.py` (build + `sync_connector`), `scheduler.py` (`is_due`/`next_sync_at` + tick loop).
+- `src/api/routes_mcp.py`: MCP server CRUD, OAuth connect/callback, tools list.
+- `src/core/mcp/`: MCP client layer — presets, DB token storage, OAuth flow, sessions.
+- `src/core/connectors/`: connector layer — `base.py` (`SourceConnector`, `SourceItem`), legacy HTTP clients, `mcp_*.py` adapters, `registry.py` (build + `sync_connector`), `scheduler.py`.
 - `src/core/ingest_pipeline.py`: ingest orchestration, reindex, queue draining.
 - `src/core/rag_orchestrator.py`: retrieval + generation glue.
 - `src/core/bm25_index.py`: in-memory BM25 with Postgres snapshot persistence.
@@ -157,12 +170,25 @@ erDiagram
     timestamptz last_sync_at
     string last_status
   }
+  mcp_servers {
+    uuid id
+    string preset
+    string name
+    string url
+    string auth_mode
+  }
+  mcp_oauth_tokens {
+    uuid server_id
+    string access_token
+    string refresh_token
+    jsonb client_info
+  }
 ```
 
 `connector_sync_state` holds one row per configured source (GitHub repo, JIRA
-project, Confluence space, Slack channel). `config` carries non-secret settings
-plus a `token_env` pointer; `cursor` tracks incremental position;
-`sync_interval_min` drives the scheduler. Synced documents land in
+project, Confluence space, Slack channel, or MCP-backed resource). For MCP
+types, `config.server_id` references `mcp_servers`. OAuth material lives only in
+`mcp_oauth_tokens` (never returned by the API). Synced documents land in
 `document_chunks` / `vault_files` like any other ingested file.
 
 ## Resource Budget (Guideline)

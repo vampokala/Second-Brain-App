@@ -1,4 +1,12 @@
-export type ConnectorType = 'github' | 'jira' | 'confluence' | 'slack'
+export type LegacyConnectorType = 'github' | 'jira' | 'confluence' | 'slack'
+export type McpConnectorType =
+  | 'mcp_jira'
+  | 'mcp_confluence'
+  | 'mcp_github'
+  | 'mcp_gmail'
+  | 'mcp_gchat'
+  | 'mcp_custom'
+export type ConnectorType = LegacyConnectorType | McpConnectorType
 
 export type Connector = {
   id: string

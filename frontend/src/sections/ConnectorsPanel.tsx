@@ -1,26 +1,91 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { GitBranch, Hash, Plug, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { GitBranch, Hash, Mail, MessageSquare, Plug, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   connectorsClient,
   type Connector,
   type ConnectorType,
 } from '../api/connectorsClient'
+import { mcpClient, type McpServer, type McpTool } from '../api/mcpClient'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
+import { useToast } from '../components/toast/ToastProvider'
+import { saveConnectorToken, tokenSettingForType } from '../lib/connectorTokens'
+import { McpServersSection } from './McpServersSection'
 
 type FieldDef = { key: string; label: string; placeholder?: string; type?: 'text' | 'checkbox' }
 
 const TYPE_META: Record<
   ConnectorType,
-  { label: string; icon: typeof Plug; resourceLabel: string; tokenEnv: string; fields: FieldDef[] }
+  {
+    label: string
+    icon: typeof Plug
+    resourceLabel: string
+    tokenEnv?: string
+    fields: FieldDef[]
+    mcp?: boolean
+    legacy?: boolean
+    preset?: string
+  }
 > = {
+  mcp_jira: {
+    label: 'JIRA (MCP)',
+    icon: Plug,
+    resourceLabel: 'Project key',
+    fields: [
+      { key: 'jql', label: 'JQL (optional)', placeholder: 'project = ENG ORDER BY updated' },
+      { key: 'jql_extra', label: 'Extra JQL AND clause (optional)' },
+    ],
+    mcp: true,
+    preset: 'atlassian',
+  },
+  mcp_confluence: {
+    label: 'Confluence (MCP)',
+    icon: Plug,
+    resourceLabel: 'Space key',
+    fields: [],
+    mcp: true,
+    preset: 'atlassian',
+  },
+  mcp_github: {
+    label: 'GitHub (MCP)',
+    icon: GitBranch,
+    resourceLabel: 'owner/repo',
+    tokenEnv: 'GITHUB_TOKEN',
+    fields: [{ key: 'include_issues', label: 'Include issues & PRs', type: 'checkbox' }],
+    mcp: true,
+    preset: 'github',
+  },
+  mcp_gmail: {
+    label: 'Gmail (MCP)',
+    icon: Mail,
+    resourceLabel: 'Gmail query / label',
+    fields: [],
+    mcp: true,
+    preset: 'google_workspace',
+  },
+  mcp_gchat: {
+    label: 'Google Chat (MCP)',
+    icon: MessageSquare,
+    resourceLabel: 'Space ID',
+    fields: [],
+    mcp: true,
+    preset: 'google_workspace',
+  },
+  mcp_custom: {
+    label: 'Custom MCP tool',
+    icon: Plug,
+    resourceLabel: 'Resource label',
+    fields: [],
+    mcp: true,
+    preset: 'custom',
+  },
   github: {
-    label: 'GitHub',
+    label: 'GitHub (legacy token)',
     icon: GitBranch,
     resourceLabel: 'owner/repo',
     tokenEnv: 'GITHUB_TOKEN',
@@ -28,9 +93,10 @@ const TYPE_META: Record<
       { key: 'branch', label: 'Branch (optional)', placeholder: 'main' },
       { key: 'include_issues', label: 'Include issues & PRs', type: 'checkbox' },
     ],
+    legacy: true,
   },
   jira: {
-    label: 'JIRA',
+    label: 'JIRA (legacy token)',
     icon: Plug,
     resourceLabel: 'Project key',
     tokenEnv: 'JIRA_API_TOKEN',
@@ -39,9 +105,10 @@ const TYPE_META: Record<
       { key: 'email', label: 'Account email', placeholder: 'you@acme.com' },
       { key: 'jql', label: 'JQL (optional)', placeholder: 'project = ENG ORDER BY updated' },
     ],
+    legacy: true,
   },
   confluence: {
-    label: 'Confluence',
+    label: 'Confluence (legacy token)',
     icon: Plug,
     resourceLabel: 'Space key',
     tokenEnv: 'CONFLUENCE_API_TOKEN',
@@ -49,6 +116,7 @@ const TYPE_META: Record<
       { key: 'base_url', label: 'Base URL', placeholder: 'https://acme.atlassian.net' },
       { key: 'email', label: 'Account email', placeholder: 'you@acme.com' },
     ],
+    legacy: true,
   },
   slack: {
     label: 'Slack',
@@ -81,35 +149,119 @@ function intervalLabel(min: number | null): string {
   return INTERVAL_OPTIONS.find((o) => o.value === min)?.label ?? `Every ${min} min`
 }
 
+function availableTypes(servers: McpServer[] | undefined): ConnectorType[] {
+  const connectedPresets = new Set(
+    (servers ?? []).filter((s) => s.connected || s.authMode === 'token' || s.authMode === 'none').map((s) => s.preset),
+  )
+  const types = Object.entries(TYPE_META)
+    .filter(([, meta]) => {
+      if (!meta.mcp) return true
+      if (!meta.preset) return true
+      return connectedPresets.has(meta.preset)
+    })
+    .map(([k]) => k as ConnectorType)
+  return types.length > 0 ? types : (['github'] as ConnectorType[])
+}
+
 function AddConnectorForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient()
-  const [type, setType] = useState<ConnectorType>('github')
+  const { toast } = useToast()
+  const { data: mcpServers } = useQuery({
+    queryKey: ['mcp-servers'],
+    queryFn: mcpClient.listServers,
+  })
+  const types = useMemo(() => availableTypes(mcpServers), [mcpServers])
+  const [type, setType] = useState<ConnectorType>(types[0] ?? 'mcp_jira')
   const [resourceId, setResourceId] = useState('')
   const [config, setConfig] = useState<Record<string, unknown>>({})
   const [intervalMin, setIntervalMin] = useState(0)
+  const [tokenDraft, setTokenDraft] = useState('')
+  const [tokenStatus, setTokenStatus] = useState<{ masked?: string; envLocked?: boolean }>({})
+  const [tools, setTools] = useState<McpTool[]>([])
   const meta = TYPE_META[type]
+  const tokenMeta = tokenSettingForType(type)
+  const showToken =
+    Boolean(meta.legacy || meta.tokenEnv) && (meta.legacy || !meta.mcp || Boolean(tokenMeta))
+
+  useEffect(() => {
+    if (!types.includes(type)) setType(types[0] ?? 'github')
+  }, [types, type])
+
+  useEffect(() => {
+    setTokenDraft('')
+    void (async () => {
+      if (!tokenMeta) return
+      try {
+        const res = await fetch('/settings')
+        if (!res.ok) return
+        const data = (await res.json()) as {
+          values: Record<string, unknown>
+          env_override_keys: string[]
+        }
+        const masked = data.values[tokenMeta.settingKey]
+        setTokenStatus({
+          masked: typeof masked === 'string' ? masked : undefined,
+          envLocked: data.env_override_keys.includes(tokenMeta.settingKey),
+        })
+      } catch {
+        setTokenStatus({})
+      }
+    })()
+  }, [type, tokenMeta])
+
+  useEffect(() => {
+    if (type !== 'mcp_custom') return
+    const serverId = String(config.server_id || '')
+    if (!serverId) {
+      setTools([])
+      return
+    }
+    void mcpClient
+      .listTools(serverId)
+      .then(setTools)
+      .catch(() => setTools([]))
+  }, [type, config.server_id])
 
   const save = useMutation({
-    mutationFn: () =>
-      connectorsClient.upsert({
+    mutationFn: async () => {
+      if (tokenDraft.trim() && tokenMeta && !tokenStatus.envLocked && showToken) {
+        await saveConnectorToken(tokenMeta.settingKey, tokenDraft.trim())
+      }
+      const nextConfig = { ...config }
+      if (meta.mcp && meta.preset && !nextConfig.server_id) {
+        const match = (mcpServers ?? []).find(
+          (s) => s.preset === meta.preset && !s.id.startsWith('preset:'),
+        )
+        if (match) nextConfig.server_id = match.id
+      }
+      return connectorsClient.upsert({
         connector_type: type,
         resource_id: resourceId.trim(),
-        config,
+        config: nextConfig,
         sync_interval_min: intervalMin || null,
-      }),
+      })
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['connectors'] })
+      toast({ title: 'Connector saved', tone: 'success' })
       onDone()
     },
+    onError: (e) => {
+      toast({ title: 'Save failed', description: (e as Error).message, tone: 'error' })
+    },
   })
+
+  const customServers = (mcpServers ?? []).filter(
+    (s) => s.preset === 'custom' && !s.id.startsWith('preset:'),
+  )
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Add a connector</CardTitle>
         <CardDescription>
-          Configure a source. The credential is read from the <code>{meta.tokenEnv}</code> environment
-          variable on the server and is never stored in the database.
+          Prefer MCP types (OAuth). Legacy token connectors remain available. Tokens are stored as
+          app settings — never on the connector row.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -123,9 +275,9 @@ function AddConnectorForm({ onDone }: { onDone: () => void }) {
                 setConfig({})
               }}
             >
-              {Object.entries(TYPE_META).map(([k, m]) => (
+              {types.map((k) => (
                 <option key={k} value={k}>
-                  {m.label}
+                  {TYPE_META[k].label}
                 </option>
               ))}
             </Select>
@@ -139,6 +291,68 @@ function AddConnectorForm({ onDone }: { onDone: () => void }) {
             />
           </label>
         </div>
+
+        {type === 'mcp_custom' ? (
+          <>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">MCP server</span>
+              <Select
+                value={String(config.server_id || '')}
+                onChange={(e) => setConfig((c) => ({ ...c, server_id: e.target.value }))}
+              >
+                <option value="">Select server…</option>
+                {customServers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Tool</span>
+              <Select
+                value={String(config.tool_name || '')}
+                onChange={(e) => setConfig((c) => ({ ...c, tool_name: e.target.value }))}
+              >
+                <option value="">Select tool…</option>
+                {tools.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Tool args (JSON)</span>
+              <Input
+                value={String(config.tool_args_text || '{}')}
+                onChange={(e) => {
+                  const text = e.target.value
+                  let parsed: unknown = {}
+                  try {
+                    parsed = JSON.parse(text)
+                  } catch {
+                    parsed = {}
+                  }
+                  setConfig((c) => ({
+                    ...c,
+                    tool_args_text: text,
+                    tool_args: parsed,
+                  }))
+                }}
+                placeholder='{"query":"{since}"}'
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Items path (optional)</span>
+              <Input
+                value={String(config.items_path || '')}
+                onChange={(e) => setConfig((c) => ({ ...c, items_path: e.target.value }))}
+                placeholder="results"
+              />
+            </label>
+          </>
+        ) : null}
 
         {meta.fields.map((f) =>
           f.type === 'checkbox' ? (
@@ -162,6 +376,27 @@ function AddConnectorForm({ onDone }: { onDone: () => void }) {
           ),
         )}
 
+        {showToken && tokenMeta ? (
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium">
+              {tokenMeta.label} token ({tokenMeta.envName})
+            </span>
+            <Input
+              type="password"
+              value={tokenDraft}
+              disabled={tokenStatus.envLocked}
+              onChange={(e) => setTokenDraft(e.target.value)}
+              placeholder={
+                tokenStatus.envLocked
+                  ? `Locked by ${tokenMeta.envName} in environment`
+                  : tokenStatus.masked
+                    ? 'Saved token present. Enter new token to replace.'
+                    : `Paste ${tokenMeta.envName}`
+              }
+            />
+          </label>
+        ) : null}
+
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">Sync schedule</span>
           <Select value={String(intervalMin)} onChange={(e) => setIntervalMin(Number(e.target.value))}>
@@ -171,9 +406,6 @@ function AddConnectorForm({ onDone }: { onDone: () => void }) {
               </option>
             ))}
           </Select>
-          <span className="text-xs text-muted-foreground">
-            Auto-runs the ingestion pipeline on this cadence. You can always sync manually.
-          </span>
         </label>
 
         {save.isError ? (
@@ -194,10 +426,23 @@ function AddConnectorForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-function ConnectorCard({ connector }: { connector: Connector }) {
+function ConnectorCard({
+  connector,
+  onAskAbout,
+}: {
+  connector: Connector
+  onAskAbout?: (prompt: string) => void
+}) {
   const qc = useQueryClient()
   const [message, setMessage] = useState<string | null>(null)
-  const meta = TYPE_META[connector.connector_type]
+  const [syncing, setSyncing] = useState(false)
+  const [syncedJustNow, setSyncedJustNow] = useState(false)
+  const meta = TYPE_META[connector.connector_type] ?? {
+    label: connector.connector_type,
+    icon: Plug,
+    resourceLabel: 'Resource',
+    fields: [],
+  }
   const Icon = meta.icon
 
   const test = useMutation({
@@ -207,16 +452,37 @@ function ConnectorCard({ connector }: { connector: Connector }) {
   })
   const sync = useMutation({
     mutationFn: () => connectorsClient.sync(connector.id),
-    onSuccess: (r) => {
-      setMessage(r.status === 'started' ? 'Sync started — watch progress in Add ▸ events.' : r.detail || r.status)
-      setTimeout(() => void qc.invalidateQueries({ queryKey: ['connectors'] }), 1500)
+    onMutate: () => {
+      setSyncing(true)
+      setSyncedJustNow(false)
+      setMessage('Sync in progress…')
     },
-    onError: (e) => setMessage((e as Error).message),
+    onSuccess: (r) => {
+      setMessage(
+        r.status === 'started' ? 'Sync started — refreshing status…' : r.detail || r.status,
+      )
+      const poll = window.setInterval(() => {
+        void qc.invalidateQueries({ queryKey: ['connectors'] })
+      }, 2000)
+      window.setTimeout(() => {
+        window.clearInterval(poll)
+        setSyncing(false)
+        setSyncedJustNow(true)
+        setMessage('Sync finished — ask about the synced items below.')
+        void qc.invalidateQueries({ queryKey: ['connectors'] })
+      }, 8000)
+    },
+    onError: (e) => {
+      setSyncing(false)
+      setMessage((e as Error).message)
+    },
   })
   const remove = useMutation({
     mutationFn: () => connectorsClient.remove(connector.id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['connectors'] }),
   })
+
+  const showAskCta = syncedJustNow || (connector.item_count > 0 && connector.last_status === 'ok')
 
   return (
     <Card>
@@ -232,8 +498,8 @@ function ConnectorCard({ connector }: { connector: Connector }) {
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <Badge variant={statusVariant(connector.last_status)}>
-              {connector.last_status ?? 'never synced'}
+            <Badge variant={syncing ? 'secondary' : statusVariant(connector.last_status)}>
+              {syncing ? 'syncing…' : connector.last_status ?? 'never synced'}
             </Badge>
             <Badge variant="outline">{intervalLabel(connector.sync_interval_min)}</Badge>
           </div>
@@ -249,6 +515,12 @@ function ConnectorCard({ connector }: { connector: Connector }) {
             <span>next sync {new Date(connector.next_sync_at).toLocaleString()}</span>
           ) : null}
         </div>
+        {syncing ? (
+          <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            Pulling latest items into the knowledge base…
+          </div>
+        ) : null}
         {connector.last_error ? (
           <p className="text-xs text-destructive">{connector.last_error}</p>
         ) : null}
@@ -258,10 +530,27 @@ function ConnectorCard({ connector }: { connector: Connector }) {
             <Plug className="h-4 w-4" />
             {test.isPending ? 'Testing…' : 'Test'}
           </Button>
-          <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
-            {sync.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+          <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending || syncing}>
+            {sync.isPending || syncing ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4" />
+            )}
             Sync now
           </Button>
+          {showAskCta && onAskAbout ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                onAskAbout(
+                  `What changed in the synced ${meta.label} source "${connector.resource_id}"? Summarize key items and cite sources.`,
+                )
+              }
+            >
+              Ask about synced items
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="sm"
@@ -278,7 +567,7 @@ function ConnectorCard({ connector }: { connector: Connector }) {
   )
 }
 
-export function ConnectorsPanel() {
+export function ConnectorsPanel({ onAskAbout }: { onAskAbout?: (prompt: string) => void }) {
   const [adding, setAdding] = useState(false)
   const { data: connectors, isLoading, isError, error } = useQuery({
     queryKey: ['connectors'],
@@ -288,14 +577,15 @@ export function ConnectorsPanel() {
 
   return (
     <div className="space-y-4">
+      <McpServersSection />
+
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>Team connectors</CardTitle>
+              <CardTitle>Sync connectors</CardTitle>
               <CardDescription>
-                Keep the knowledge base current with commits, tickets, and docs. Synced items become
-                fully retrievable and citable.
+                Keep the knowledge base current. Synced items become fully retrievable and citable.
               </CardDescription>
             </div>
             {!adding ? (
@@ -318,7 +608,7 @@ export function ConnectorsPanel() {
       {connectors && connectors.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {connectors.map((c) => (
-            <ConnectorCard key={c.id} connector={c} />
+            <ConnectorCard key={c.id} connector={c} onAskAbout={onAskAbout} />
           ))}
         </div>
       ) : !isLoading && !adding ? (
@@ -327,7 +617,7 @@ export function ConnectorsPanel() {
             <Plug className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />
             <p className="mt-3 text-sm font-medium">No connectors yet</p>
             <p className="text-sm text-muted-foreground">
-              Add GitHub, JIRA, Confluence, or Slack to keep knowledge fresh.
+              Connect an MCP server above, then add a sync connector.
             </p>
           </CardContent>
         </Card>

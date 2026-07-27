@@ -18,6 +18,7 @@ from src.api.models_connectors import (
     ConnectorTestResult,
     ConnectorUpsertBody,
 )
+from src.api.settings_secrets import strip_connector_secrets
 from src.core.connectors.base import ConnectorError
 from src.core.connectors.registry import build_connector, resolve_token, sync_connector
 from src.core.connectors.scheduler import next_sync_at
@@ -84,6 +85,7 @@ async def list_connectors() -> list[ConnectorOut]:
 @router.post("", response_model=ConnectorOut)
 async def upsert_connector(body: ConnectorUpsertBody) -> ConnectorOut:
     factory = async_session_factory()
+    safe_config = strip_connector_secrets(body.config)
     async with factory() as session:
         existing = (
             await session.execute(
@@ -97,13 +99,13 @@ async def upsert_connector(body: ConnectorUpsertBody) -> ConnectorOut:
             existing = ConnectorSyncState(
                 connector_type=body.connector_type,
                 resource_id=body.resource_id,
-                config=body.config,
+                config=safe_config,
                 enabled=body.enabled,
                 sync_interval_min=body.sync_interval_min,
             )
             session.add(existing)
         else:
-            existing.config = body.config
+            existing.config = safe_config
             existing.enabled = body.enabled
             existing.sync_interval_min = body.sync_interval_min
         await session.commit()

@@ -25,6 +25,7 @@ services:
       - hf_cache:/root/.cache/huggingface
     environment:
       VAULT_PATH: /vault
+      VAULT_HOST_PATH: ${VAULT_HOST_PATH:-/Users/vamshipokala/Documents/Second-Brain}
       DATABASE_URL: postgresql+asyncpg://secondbrain:${POSTGRES_PASSWORD:-localdev}@postgres:5432/secondbrain
       VECTOR_BACKEND: ${VECTOR_BACKEND:-pgvector}
       OLLAMA_HOST: http://ollama:11434
@@ -41,11 +42,35 @@ services:
       HF_HOME: /root/.cache/huggingface
       DOC_API_KEYS: ${DOC_API_KEYS:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      WORKSPACE_MCP_URL: ${WORKSPACE_MCP_URL:-http://workspace-mcp:8000/mcp}
+      MCP_OAUTH_REDIRECT_URI: ${MCP_OAUTH_REDIRECT_URI:-http://localhost:8000/mcp/oauth/callback}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
       ollama:
         condition: service_started
+    restart: unless-stopped
+
+  workspace-mcp:
+    # Community Google Workspace MCP server (Gmail + Chat) as a local sidecar.
+    # Configure GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET in .env.
+    # The sidecar owns Google OAuth; the API talks to it as an unauthenticated
+    # internal MCP endpoint (WORKSPACE_MCP_URL).
+    image: ${WORKSPACE_MCP_IMAGE:-uspacy/workspace-mcp:latest}
+    profiles: ["mcp"]
+    environment:
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      WORKSPACE_MCP_ENABLED_SERVICES: ${WORKSPACE_MCP_ENABLED_SERVICES:-gmail,chat}
+      MCP_TRANSPORT: streamable-http
+    ports:
+      - "127.0.0.1:${WORKSPACE_MCP_HOST_PORT:-8001}:8000"
+    volumes:
+      - workspace_mcp_data:/data
     restart: unless-stopped
 
   ollama:
@@ -62,3 +87,4 @@ volumes:
   pgdata:
   ollama_models:
   hf_cache:
+  workspace_mcp_data:

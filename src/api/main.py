@@ -34,6 +34,8 @@ from src.api.models import (
 from src.api.routes_chats import router as chats_router
 from src.api.routes_connectors import router as connectors_router
 from src.api.routes_ingest import router as ingest_router
+from src.api.routes_mcp import router as mcp_router
+from src.api.routes_memory import router as memory_router
 from src.api.routes_settings import router as settings_router
 from src.api.routes_vault import router as vault_router
 from src.core.observability import get_observer
@@ -119,6 +121,10 @@ async def _lifespan(app: FastAPI):
             # Avoid invoking Alembic's asyncio migration runner from the active event loop.
             await asyncio.to_thread(command.upgrade, cfg, "head")
 
+        from src.api.routes_settings import hydrate_secrets_from_db
+
+        await hydrate_secrets_from_db()
+
         settings = load_second_brain_settings()
         bus = SSEBus()
         sem = asyncio.Semaphore(settings.max_ingest_workers)
@@ -127,10 +133,24 @@ async def _lifespan(app: FastAPI):
 
         from src.core.chat_orchestrator import ChatOrchestrator
         from src.core.chat_store import ChatStore
+        from src.core.mcp.oauth_flow import OAuthFlowManager
         from src.db.session import async_session_factory
 
+        app.state.config = _cfg
         app.state.chat_store = ChatStore(async_session_factory())
-        app.state.chat_orchestrator = ChatOrchestrator(_cfg, _orchestrator, app.state.chat_store)
+        app.state.chat_orchestrator = ChatOrchestrator(
+            _cfg,
+            _orchestrator,
+            app.state.chat_store,
+            vault_path=settings.vault_path,
+        )
+        app.state.mcp_oauth = OAuthFlowManager(
+            session_factory=async_session_factory,
+            redirect_uri=os.getenv(
+                "MCP_OAUTH_REDIRECT_URI",
+                "http://localhost:8000/mcp/oauth/callback",
+            ),
+        )
 
         pipeline = build_pipeline(
             _cfg,
@@ -151,6 +171,24 @@ async def _lifespan(app: FastAPI):
                 asyncio.get_running_loop(),
             )
             await vault_watcher.start()
+            scan_on_startup = os.getenv("SCAN_ON_STARTUP", "0").strip().lower() in (
+                "1",
+                "true",
+                "yes",
+            )
+            if scan_on_startup:
+
+                async def _startup_scan() -> None:
+                    # Let the watcher finish initial FS noise before scanning.
+                    await asyncio.sleep(3.0)
+                    try:
+                        await pipeline.scan_and_ingest()
+                    except Exception as exc:  # noqa: BLE001
+                        logging.getLogger(__name__).exception(
+                            "startup_scan_failed error=%s", exc
+                        )
+
+                asyncio.create_task(_startup_scan())
 
     async def _connector_scheduler() -> None:
         """Per-connector ingestion scheduler.
@@ -190,8 +228,10 @@ app = FastAPI(title="Doc Ingestion Citation API", version="0.1.0", lifespan=_lif
 app.include_router(ingest_router)
 app.include_router(vault_router)
 app.include_router(chats_router)
+app.include_router(memory_router)
 app.include_router(settings_router)
 app.include_router(connectors_router)
+app.include_router(mcp_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins(),

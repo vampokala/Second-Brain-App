@@ -16,6 +16,10 @@ from src.core.connectors.base import ConnectorError, SourceConnector
 from src.core.connectors.confluence import ConfluenceConnector
 from src.core.connectors.github import GitHubConnector
 from src.core.connectors.jira import JiraConnector
+from src.core.connectors.mcp_atlassian import McpConfluenceConnector, McpJiraConnector
+from src.core.connectors.mcp_custom import McpCustomConnector
+from src.core.connectors.mcp_github import McpGitHubConnector
+from src.core.connectors.mcp_google import McpGChatConnector, McpGmailConnector
 from src.core.connectors.slack import SlackConnector
 
 logger = logging.getLogger(__name__)
@@ -25,6 +29,12 @@ CONNECTOR_TYPES: dict[str, type[SourceConnector]] = {
     "jira": JiraConnector,
     "confluence": ConfluenceConnector,
     "slack": SlackConnector,
+    "mcp_jira": McpJiraConnector,
+    "mcp_confluence": McpConfluenceConnector,
+    "mcp_github": McpGitHubConnector,
+    "mcp_gmail": McpGmailConnector,
+    "mcp_gchat": McpGChatConnector,
+    "mcp_custom": McpCustomConnector,
 }
 
 DEFAULT_TOKEN_ENV: dict[str, str] = {

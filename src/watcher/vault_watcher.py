@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING, Optional
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
+from src.core.ingest_paths import should_skip_path
+from src.core.supported_formats import is_supported
+
 if TYPE_CHECKING:
     from src.core.ingest_pipeline import IngestPipeline
 
@@ -128,8 +131,10 @@ class VaultWatcher:
                 p = path.resolve()
                 if not p.is_file():
                     return
-                parts = p.relative_to(self._vault).parts
-                if ".git" in parts or ".obsidian" in parts:
+                if should_skip_path(p, self._vault):
+                    return
+                vision = self._pipeline.is_vision_enabled()
+                if not is_supported(p.suffix, vision_enabled=vision):
                     return
                 await self._pipeline.ingest_file(p)
             except asyncio.CancelledError:

@@ -1,30 +1,49 @@
-import { FolderOpen, Plug, Upload } from 'lucide-react'
+import { FolderOpen, Plug, RefreshCw, Upload } from 'lucide-react'
 
 import { Segmented } from '../components/ui/segmented'
+import { IngestScanTab } from '../tabs/IngestScanTab'
 import { IngestTab } from '../tabs/IngestTab'
 import { VaultTab } from '../tabs/VaultTab'
 import { ConnectorsPanel } from './ConnectorsPanel'
 
-export type KnowledgeView = 'browse' | 'add' | 'connectors'
+export type KnowledgeView = 'browse' | 'ingest' | 'add' | 'connectors'
 
 type Props = {
   view: KnowledgeView
   onViewChange: (v: KnowledgeView) => void
+  onAskAbout?: (prompt: string) => void
+}
+
+function knowledgeCopy(view: KnowledgeView): { heading: string; subtitle: string } {
+  if (view === 'browse') {
+    return {
+      heading: 'Browse vault',
+      subtitle: 'Explore indexed files and ask about what you find.',
+    }
+  }
+  if (view === 'ingest') {
+    return {
+      heading: 'Ingest vault',
+      subtitle: 'Scan the vault folder for new or changed files, including drops from shared mounts.',
+    }
+  }
+  if (view === 'add') {
+    return {
+      heading: 'Add documents',
+      subtitle: 'Ingest files, pasted text, or a URL into the knowledge base.',
+    }
+  }
+  return {
+    heading: 'Connectors',
+    subtitle: 'Keep knowledge fresh from GitHub, JIRA, Confluence, and Slack.',
+  }
 }
 
 /**
- * "Knowledge" merges the old Vault (browse), Ingest (add) and the new
- * Connectors panel into one place to inspect and grow the corpus.
+ * "Knowledge" merges vault browse, vault scan ingest, Add, and Connectors.
  */
-export function KnowledgeSection({ view, onViewChange }: Props) {
-  const heading =
-    view === 'browse' ? 'Browse vault' : view === 'add' ? 'Add documents' : 'Connectors'
-  const subtitle =
-    view === 'browse'
-      ? 'Explore indexed files and inspect their content.'
-      : view === 'add'
-        ? 'Ingest files, pasted text, or a URL into the knowledge base.'
-        : 'Keep knowledge fresh from GitHub, JIRA, Confluence, and Slack.'
+export function KnowledgeSection({ view, onViewChange, onAskAbout }: Props) {
+  const { heading, subtitle } = knowledgeCopy(view)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -39,6 +58,7 @@ export function KnowledgeSection({ view, onViewChange }: Props) {
           onChange={onViewChange}
           options={[
             { value: 'browse', label: 'Browse', icon: FolderOpen },
+            { value: 'ingest', label: 'Ingest', icon: RefreshCw },
             { value: 'add', label: 'Add', icon: Upload },
             { value: 'connectors', label: 'Connectors', icon: Plug },
           ]}
@@ -46,9 +66,10 @@ export function KnowledgeSection({ view, onViewChange }: Props) {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        {view === 'browse' ? <VaultTab /> : null}
+        {view === 'browse' ? <VaultTab onAskAbout={onAskAbout} /> : null}
+        {view === 'ingest' ? <IngestScanTab /> : null}
         {view === 'add' ? <IngestTab /> : null}
-        {view === 'connectors' ? <ConnectorsPanel /> : null}
+        {view === 'connectors' ? <ConnectorsPanel onAskAbout={onAskAbout} /> : null}
       </div>
     </div>
   )

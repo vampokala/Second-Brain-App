@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Upload } from 'lucide-react'
 import { uploadDocuments, type SessionSummary, type UploadResult } from '../api/client'
 import { formatBytes } from '../lib/format'
+import { Button } from './ui/button'
 
 const ACCEPTED = '.pdf,.docx,.txt,.md,.html'
 const MAX_FILE_BYTES = 3 * 1024 * 1024
@@ -84,14 +85,14 @@ export function Uploader({
           className="sr-only"
           onChange={(event) => event.target.files && upload(event.target.files)}
         />
-        <button
+        <Button
           type="button"
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+          className="mt-4"
           disabled={mutation.isPending || !summary}
           onClick={() => inputRef.current?.click()}
         >
           {mutation.isPending ? 'Uploading...' : 'Choose files'}
-        </button>
+        </Button>
       </div>
       {message ? <p className="mt-3 text-sm text-foreground" aria-live="polite">{message}</p> : null}
       {results.length > 0 ? (

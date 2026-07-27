@@ -1,139 +1,92 @@
+import { ExternalLink } from 'lucide-react'
+
+import { Button } from '../components/ui/button'
+
 export function OverviewTab() {
   return (
-    <div className="space-y-5">
-      <section className="app-card p-5">
-        <h2 className="text-lg font-semibold text-foreground">Overview</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Doc Ingestion answers questions using retrieved document chunks, optional citations in the answer,
-          and quality signals so you can judge how grounded a reply is. Use this page as a quick reference
-          for scopes, citations, truthfulness, and retrieval scores.
-        </p>
-      </section>
-
-      <section className="app-card p-5">
-        <h2 className="text-lg font-semibold text-foreground">Knowledge scope</h2>
+    <div className="space-y-4">
+      <section className="rounded-xl border border-border bg-card p-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Help</p>
+        <h2 className="mt-1 text-xl font-semibold text-foreground">Demo script</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          On the Query tab, choose where the system searches before the model answers. Uploads require an
-          active session with at least one file.
-        </p>
-        <dl className="mt-4 space-y-4 text-sm">
-          <div>
-            <dt className="font-semibold text-foreground">Global sample corpus</dt>
-            <dd className="mt-1 text-muted-foreground">
-              Search the preloaded public demo documents only. Always available.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">My uploads only</dt>
-            <dd className="mt-1 text-muted-foreground">
-              Search only files you uploaded in this browser session. Enabled after you upload at least one
-              document.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Both</dt>
-            <dd className="mt-1 text-muted-foreground">
-              Combine the global demo corpus with your session uploads so answers can draw from either
-              source.
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-4 rounded-lg border border-border bg-muted p-3 text-sm text-muted-foreground">
-          Session uploads are private to your session, expire after inactivity, and are not merged into the
-          shared global corpus.
+          Walk through Ask → citations → vault → ingest in under a minute. Keep this open as a
+          cheat sheet during the demo.
         </p>
       </section>
 
-      <section className="app-card p-5">
-        <h2 className="text-lg font-semibold text-foreground">Citations</h2>
-        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-          <li>
-            The model is steered to ground answers in retrieved text and to mark supporting passages with
-            citation markers (for example references to documents or chunks).
-          </li>
-          <li>
-            In the Citations panel, each entry may show a <span className="font-medium text-foreground">global</span>{' '}
-            or <span className="font-medium text-foreground">yours</span> badge so you can see whether evidence
-            came from the demo corpus or your uploads.
-          </li>
-          <li>
-            <span className="font-medium text-foreground">Verification</span> summarizes how well the cited
-            chunk supports the span that cited it. The <span className="font-medium text-foreground">score</span>{' '}
-            (0–1) is a verification confidence for that citation; it feeds into the truthfulness score
-            below.
-          </li>
-        </ul>
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h3 className="text-base font-semibold text-foreground">Observability</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Open the Langfuse dashboard to inspect traces, retrieval hits, and generation quality during
+          the demo.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3"
+          asChild
+        >
+          <a href="/observability/dashboard" target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" />
+            Open observability dashboard
+          </a>
+        </Button>
       </section>
 
-      <section className="app-card p-5">
-        <h2 className="text-lg font-semibold text-foreground">Truthfulness</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          When present, the <span className="font-medium text-foreground">Truthfulness</span> value next to the
-          answer is a single number from <strong>0</strong> to <strong>1</strong>. It blends two signals:
-        </p>
-        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-          <li>
-            <span className="font-medium text-foreground">NLI faithfulness</span> — for substantive sentences
-            in the answer, the share that an entailment model judges as supported by at least one retrieved
-            chunk (high entailment probability).
-          </li>
-          <li>
-            <span className="font-medium text-foreground">Citation groundedness</span> — the average citation{' '}
-            <span className="font-medium text-foreground">verification_score</span> across returned citations.
-          </li>
-        </ul>
-        <p className="mt-3 text-sm text-muted-foreground">
-          The headline score is approximately <strong>60%</strong> NLI faithfulness plus{' '}
-          <strong>40%</strong> citation groundedness.
-        </p>
-        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[280px] border-collapse text-left text-sm">
-            <caption className="sr-only">Truthfulness score bands</caption>
-            <thead>
-              <tr className="border-b border-border bg-muted">
-                <th className="px-3 py-2 font-semibold text-foreground">Range</th>
-                <th className="px-3 py-2 font-semibold text-foreground">How to read it</th>
-              </tr>
-            </thead>
-            <tbody className="text-muted-foreground">
-              <tr className="border-b border-border">
-                <td className="px-3 py-2 font-medium text-foreground">≥ 0.80</td>
-                <td className="px-3 py-2">Strong grounding: most claims align with sources and citations verify well.</td>
-              </tr>
-              <tr className="border-b border-border">
-                <td className="px-3 py-2 font-medium text-foreground">0.50 – 0.79</td>
-                <td className="px-3 py-2">Mixed: treat as helpful but verify important facts in the cited text.</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2 font-medium text-foreground">&lt; 0.50</td>
-                <td className="px-3 py-2">
-                  Weak: the answer may paraphrase loosely, omit citations, or go beyond the retrieved evidence.
-                  Read the retrieved chunks and citations carefully.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Truthfulness can be unavailable if scoring is disabled or errors occur; that does not imply the
-          answer is ungrounded.
-        </p>
-      </section>
+      <DemoCard
+        step="1"
+        title="Ask a seeded question"
+        body="Open Ask. A chat is ready with three starter questions. Pick one or type your own — Enter sends, Shift+Enter adds a newline."
+      />
+      <DemoCard
+        step="2"
+        title="Watch retrieval, then Sources"
+        body='While answering you will see “Searching knowledge…”. Open Sources for titles, previews, scores, and jump into the vault file.'
+      />
+      <DemoCard
+        step="3"
+        title="Choose scope"
+        body="Use the Vault / Global pills in the Ask header. Vault searches your indexed knowledge base; Global uses the shared demo corpus."
+      />
+      <DemoCard
+        step="4"
+        title="Add knowledge"
+        body="Knowledge → Add: drop files or paste text. Progress rows show human status; raw event JSON lives under Advanced. In demo mode, session uploads use the scope toggle (global / my uploads / both)."
+      />
+      <DemoCard
+        step="5"
+        title="Browse & ask about a file"
+        body='Knowledge → Browse: open a file, then “Ask about this file” to jump back to Ask with a ready prompt. Connectors: Sync now, then “Ask about synced items”.'
+      />
+      <DemoCard
+        step="6"
+        title="Sync a public GitHub repo"
+        body="Knowledge → Connectors: add a public repo (no token required for demo), run Sync now, then Ask about the synced README or issues."
+      />
 
-      <section className="app-card p-5">
-        <h2 className="text-lg font-semibold text-foreground">Retrieved chunk scores</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Under <span className="font-medium text-foreground">Retrieved chunks</span>, each line shows a{' '}
-          <span className="font-medium text-foreground">score</span> from hybrid search (BM25 plus dense
-          vectors, fused with reciprocal rank fusion). These numbers are <strong>not</strong> on the same
-          0–1 scale as truthfulness or citation verification.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Typical top hits often appear in roughly the <strong>0.01–0.03</strong> range depending on settings.
-          Compare scores <strong>relative to other chunks in the same answer</strong> (ranking), not to a fixed
-          threshold like 0.8.
+      <section className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">Session uploads (demo)</p>
+        <p className="mt-1">
+          Browser-session files stay private, expire after inactivity, and are not merged into the
+          shared vault. They are separate from vault ingest under Knowledge → Add.
         </p>
       </section>
     </div>
+  )
+}
+
+function DemoCard({ step, title, body }: { step: string; title: string; body: string }) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          {step}
+        </span>
+        <div>
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
+        </div>
+      </div>
+    </section>
   )
 }

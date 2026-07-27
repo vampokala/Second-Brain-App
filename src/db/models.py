@@ -206,4 +206,44 @@ class ConnectorSyncState(Base):
     __table_args__ = (Index("ux_connector_type_resource", "connector_type", "resource_id", unique=True),)
 
 
+class McpServer(Base):
+    """Configured MCP server (Atlassian, GitHub, Google Workspace, or custom)."""
+
+    __tablename__ = "mcp_servers"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    preset: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    auth_mode: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'oauth'"))
+    token_env: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()"), onupdate=text("now()")
+    )
+
+    __table_args__ = (Index("ux_mcp_server_preset_name", "preset", "name", unique=True),)
+
+
+class McpOAuthToken(Base):
+    """OAuth tokens for an MCP server. Never exposed via API responses."""
+
+    __tablename__ = "mcp_oauth_tokens"
+
+    server_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("mcp_servers.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    access_token: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    scope: Mapped[str | None] = mapped_column(Text, nullable=True)
+    client_info: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now()"), onupdate=text("now()")
+    )
+
+
 # NOTE: do not append stray imports below; keep models self-contained.

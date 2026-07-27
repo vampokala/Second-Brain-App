@@ -6,10 +6,12 @@ over them (React UI + FastAPI + Postgres/pgvector + Ollama).
 
 ## Start here
 
-- **Using the app** (setup, ingest, connectors, scheduler): [`INSTRUCTIONS.md`](INSTRUCTIONS.md)
+- **Install & using the app** (setup, Ask/Knowledge UX, ingest, connectors): [`INSTRUCTIONS.md`](INSTRUCTIONS.md)
+- **Repo Quickstart & API table**: [`../README.md`](../README.md)
 - **What it is & how it's designed**: [`PROJECT_OVERVIEW.md`](PROJECT_OVERVIEW.md)
 - **Architecture & schema**: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - **Operations & recovery**: [`RUNBOOK.md`](RUNBOOK.md)
+- **Zero-Docker desktop sibling**: [Second-Brain-Lite README](../../Second-Brain-Lite/README.md) (Tauri; use when Docker is not an option)
 
 ## Reference
 
