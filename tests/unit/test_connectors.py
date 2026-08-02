@@ -9,7 +9,7 @@ import pytest
 from src.core.connectors.base import SourceItem
 from src.core.connectors.confluence import _html_to_text
 from src.core.connectors.github import GitHubConnector
-from src.core.connectors.jira import _adf_to_text, _to_jira_time
+from src.core.connectors.jira import JiraConnector, _adf_to_text, _to_jira_time
 from src.core.connectors.registry import (
     DEFAULT_TOKEN_ENV,
     build_connector,
@@ -282,3 +282,119 @@ def test_jira_search_json_shape_is_serializable():
     # guard: ensure our fixture-style dicts round-trip (sanity for CI mocks)
     payload = {"jql": "project = X", "issues": []}
     assert json.loads(json.dumps(payload))["jql"] == "project = X"
+
+
+@pytest.mark.asyncio
+async def test_jira_fetch_uses_enhanced_search_jql_endpoint():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        assert request.url.path.endswith("/rest/api/3/search/jql")
+        body = json.loads(request.content.decode())
+        assert "jql" in body
+        assert "startAt" not in body
+        return httpx.Response(
+            200,
+            json={
+                "issues": [
+                    {
+                        "key": "ENG-1",
+                        "fields": {
+                            "summary": "One",
+                            "description": None,
+                            "updated": "2024-01-01T00:00:00.000+0000",
+                            "status": {"name": "Open"},
+                            "issuetype": {"name": "Task"},
+                            "reporter": {"displayName": "Ada"},
+                        },
+                    }
+                ]
+            },
+        )
+
+    conn = JiraConnector(
+        "ENG",
+        {"base_url": "https://acme.atlassian.net", "email": "a@b.com"},
+        token="tok",
+        client=_mock_client(handler),
+    )
+    items = [i async for i in conn.fetch(None)]
+    assert len(items) == 1
+    assert items[0].external_id == "ENG-1"
+    assert seen == ["/rest/api/3/search/jql"]
+
+
+@pytest.mark.asyncio
+async def test_jira_fetch_paginates_with_next_page_token():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        body = json.loads(request.content.decode())
+        if calls == 1:
+            assert "nextPageToken" not in body
+            return httpx.Response(
+                200,
+                json={
+                    "issues": [
+                        {
+                            "key": "ENG-1",
+                            "fields": {
+                                "summary": "a",
+                                "updated": "2024-01-01T00:00:00.000+0000",
+                                "status": {"name": "Open"},
+                                "issuetype": {"name": "Task"},
+                            },
+                        }
+                    ],
+                    "nextPageToken": "page-2",
+                },
+            )
+        assert body.get("nextPageToken") == "page-2"
+        return httpx.Response(
+            200,
+            json={
+                "issues": [
+                    {
+                        "key": "ENG-2",
+                        "fields": {
+                            "summary": "b",
+                            "updated": "2024-02-01T00:00:00.000+0000",
+                            "status": {"name": "Done"},
+                            "issuetype": {"name": "Bug"},
+                        },
+                    }
+                ]
+            },
+        )
+
+    conn = JiraConnector(
+        "ENG",
+        {"base_url": "https://acme.atlassian.net", "email": "a@b.com"},
+        token="tok",
+        client=_mock_client(handler),
+    )
+    items = [i async for i in conn.fetch(None)]
+    assert [i.external_id for i in items] == ["ENG-1", "ENG-2"]
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_jira_fetch_fails_when_search_returns_error_status():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(410, text="The requested API has been removed.")
+
+    pipeline = FakePipeline()
+    result = await sync_connector(
+        connector_type="jira",
+        resource_id="ENG",
+        config={"base_url": "https://acme.atlassian.net", "email": "a@b.com"},
+        cursor=None,
+        pipeline=pipeline,
+        token="tok",
+        client=_mock_client(handler),
+    )
+    assert result.status == "failed"
+    assert "410" in (result.error or "")

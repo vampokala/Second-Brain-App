@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
 import { Textarea } from '../components/ui/textarea'
 import { useToast } from '../components/toast/ToastProvider'
-import { CONNECTOR_TOKEN_SETTINGS } from '../lib/connectorTokens'
+import { CONNECTOR_TOKEN_SETTINGS, GOOGLE_OAUTH_SETTINGS } from '../lib/connectorTokens'
 import {
   DEFAULT_CHAT_PERSONA,
   DEFAULT_STUDENT_GRADE,
@@ -29,7 +29,10 @@ export function SettingsTab() {
     openai: '',
     anthropic: '',
     gemini: '',
+    gateway: '',
   })
+  const [gatewayUrlDraft, setGatewayUrlDraft] = useState('')
+  const [gatewayModelDraft, setGatewayModelDraft] = useState('')
   const [connectorDrafts, setConnectorDrafts] = useState<Record<string, string>>({})
   const [modelDrafts, setModelDrafts] = useState<Record<string, string>>({})
   const [showModelsByProvider, setShowModelsByProvider] = useState<Record<string, boolean>>({})
@@ -86,6 +89,16 @@ export function SettingsTab() {
       setLlmConfig(configRes)
       setModelDrafts(configRes.default_model_by_provider ?? {})
       const values = settingsPayload.values as Record<string, unknown>
+      const savedGatewayUrl =
+        typeof values.gateway_base_url === 'string' ? values.gateway_base_url : ''
+      setGatewayUrlDraft(savedGatewayUrl || configRes.gateway_base_url || '')
+      const savedGatewayModel =
+        configRes.default_model_by_provider?.gateway ||
+        (typeof (values.default_model_by_provider as Record<string, string> | undefined)?.gateway ===
+        'string'
+          ? (values.default_model_by_provider as Record<string, string>).gateway
+          : '')
+      setGatewayModelDraft(savedGatewayModel)
       setChatPersona(normalizeChatPersona(String(values.chat_persona ?? DEFAULT_CHAT_PERSONA)))
       setStudentGrade(String(values.student_grade ?? DEFAULT_STUDENT_GRADE))
       setPersonaAddon(typeof values.persona_prompt_addon === 'string' ? values.persona_prompt_addon : '')
@@ -134,10 +147,104 @@ export function SettingsTab() {
     return llmConfig?.default_model_by_provider ?? {}
   }, [data?.values, llmConfig])
 
+  const gatewayKeyName = 'gateway_api_key'
+  const gatewayUrlLocked = (data?.env_override_keys ?? []).includes('gateway_base_url')
+  const gatewayKeyLocked = (data?.env_override_keys ?? []).includes(gatewayKeyName)
+  const gatewayKeyMasked =
+    typeof data?.values?.[gatewayKeyName] === 'string' ? (data.values[gatewayKeyName] as string) : ''
+  const gatewayHasStoredKey =
+    gatewayKeyMasked.trim().length > 0 ||
+    gatewayKeyLocked ||
+    !!llmConfig?.provider_key_configured?.gateway
+  const gatewayCanSave =
+    !busy &&
+    (gatewayUrlDraft.trim().length > 0 ||
+      keyDrafts.gateway.trim().length > 0 ||
+      gatewayModelDraft.trim().length > 0)
+
+  async function saveGatewaySettings() {
+    const model = gatewayModelDraft.trim()
+    const url = gatewayUrlDraft.trim()
+    const key = keyDrafts.gateway.trim()
+    await savePatch({
+      ...(url ? { gateway_base_url: url } : {}),
+      ...(key ? { [gatewayKeyName]: { secret: key } } : {}),
+      ...(model
+        ? {
+            default_model_by_provider: { gateway: model },
+            allowed_models_by_provider: { gateway: [model] },
+          }
+        : {}),
+    })
+    setKeyDrafts((prev) => ({ ...prev, gateway: '' }))
+    await load()
+  }
+
   return (
     <div className="app-card space-y-6 p-5">
       <h2 className="text-lg font-bold">Settings</h2>
       {error ? <div className="rounded-lg bg-warning/10 p-3 text-sm">{error}</div> : null}
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">AI Gateway</h3>
+        <p className="text-sm text-muted-foreground">
+          Use an org LiteLLM / OpenAI-compatible gateway: base URL, API key, and default model.
+          Values are stored in Postgres unless overridden by Docker/env vars.
+        </p>
+        <div className="space-y-3 rounded-lg border border-border p-3">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Base URL
+            </span>
+            <Input
+              type="url"
+              value={gatewayUrlDraft}
+              disabled={gatewayUrlLocked || busy}
+              onChange={(e) => setGatewayUrlDraft(e.target.value)}
+              placeholder="http://localhost:4000/v1"
+            />
+            {gatewayUrlLocked ? (
+              <p className="text-xs text-muted-foreground">Locked by GATEWAY_BASE_URL env.</p>
+            ) : null}
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              API key
+            </span>
+            <Input
+              type="password"
+              value={keyDrafts.gateway ?? ''}
+              disabled={gatewayKeyLocked || busy}
+              onChange={(e) => setKeyDrafts((prev) => ({ ...prev, gateway: e.target.value }))}
+              placeholder={
+                gatewayHasStoredKey
+                  ? 'Saved key present. Enter new key to replace.'
+                  : 'Paste gateway API key'
+              }
+            />
+            {gatewayHasStoredKey ? (
+              <p className="text-xs text-muted-foreground">
+                Existing key detected ({gatewayKeyMasked || 'env override'}).
+              </p>
+            ) : null}
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Default model
+            </span>
+            <Input
+              type="text"
+              value={gatewayModelDraft}
+              disabled={busy}
+              onChange={(e) => setGatewayModelDraft(e.target.value)}
+              placeholder="e.g. gpt-4o-mini or org-route-name"
+            />
+          </label>
+          <Button type="button" disabled={!gatewayCanSave} onClick={() => void saveGatewaySettings()}>
+            Save AI Gateway settings
+          </Button>
+        </div>
+      </section>
 
       <section className="space-y-2">
         <h3 className="font-semibold text-foreground">Providers</h3>
@@ -392,6 +499,64 @@ export function SettingsTab() {
                   }}
                 >
                   Save {c.label} token
+                </Button>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-foreground">Google Workspace OAuth</h3>
+        <p className="text-sm text-muted-foreground">
+          Used when you click Connect on Google Workspace (opens your org&apos;s Google login). Put
+          the same values in <code className="rounded bg-secondary px-1">.env</code> so the
+          workspace-mcp container receives them, then recreate the stack.
+        </p>
+        <div className="space-y-3">
+          {GOOGLE_OAUTH_SETTINGS.map((c) => {
+            const masked =
+              typeof data?.values?.[c.settingKey] === 'string'
+                ? (data.values[c.settingKey] as string)
+                : ''
+            const envLocked = (data?.env_override_keys ?? []).includes(c.settingKey)
+            const hasStored = masked.trim().length > 0 || envLocked
+            return (
+              <div key={c.settingKey} className="rounded-lg border border-border p-3">
+                <p className="mb-1 text-sm font-semibold text-foreground">{c.label}</p>
+                <p className="mb-2 text-xs text-muted-foreground">{c.helper}</p>
+                <Input
+                  type="password"
+                  value={connectorDrafts[c.settingKey] ?? ''}
+                  disabled={envLocked || busy}
+                  onChange={(e) =>
+                    setConnectorDrafts((prev) => ({ ...prev, [c.settingKey]: e.target.value }))
+                  }
+                  placeholder={
+                    envLocked
+                      ? `Locked by ${c.envName} in environment`
+                      : hasStored
+                        ? 'Saved value present. Enter new value to replace.'
+                        : `Paste ${c.envName}`
+                  }
+                />
+                {hasStored ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {envLocked ? `Env override (${c.envName})` : `Saved (${masked})`}
+                  </p>
+                ) : null}
+                <Button
+                  className="mt-3"
+                  type="button"
+                  disabled={busy || envLocked || !(connectorDrafts[c.settingKey] ?? '').trim()}
+                  onClick={() => {
+                    const secret = (connectorDrafts[c.settingKey] ?? '').trim()
+                    void savePatch({ [c.settingKey]: { secret } }).then(() =>
+                      setConnectorDrafts((prev) => ({ ...prev, [c.settingKey]: '' })),
+                    )
+                  }}
+                >
+                  Save {c.label}
                 </Button>
               </div>
             )

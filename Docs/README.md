@@ -7,6 +7,7 @@ over them (React UI + FastAPI + Postgres/pgvector + Ollama).
 ## Start here
 
 - **Install & using the app** (setup, Ask/Knowledge UX, ingest, connectors): [`INSTRUCTIONS.md`](INSTRUCTIONS.md)
+- **MCP connectors setup** (Atlassian, GitHub, Enterprise, Google Workspace, custom): [`MCP_CONNECTORS.md`](MCP_CONNECTORS.md)
 - **Repo Quickstart & API table**: [`../README.md`](../README.md)
 - **What it is & how it's designed**: [`PROJECT_OVERVIEW.md`](PROJECT_OVERVIEW.md)
 - **Architecture & schema**: [`ARCHITECTURE.md`](ARCHITECTURE.md)

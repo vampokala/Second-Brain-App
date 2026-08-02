@@ -5,9 +5,10 @@ async function mockLlmConfig(page: Page) {
     await route.fulfill({
       json: {
         default_provider: 'ollama',
-        default_model_by_provider: { ollama: 'qwen2.5:7b' },
-        allowed_models_by_provider: { ollama: ['qwen2.5:7b'] },
-        provider_key_configured: { ollama: true },
+        default_model_by_provider: { ollama: 'qwen2.5:7b', gateway: '' },
+        allowed_models_by_provider: { ollama: ['qwen2.5:7b'], gateway: [] },
+        provider_key_configured: { ollama: true, gateway: false },
+        gateway_base_url: 'http://localhost:4000/v1',
         demo_mode: false,
       },
     })

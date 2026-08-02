@@ -153,6 +153,10 @@ Browse what's indexed in **Knowledge ▸ Browse**; corpus counts show in the top
 **Knowledge ▸ Connectors** syncs external sources into the same pipeline, so synced
 items become fully retrievable and citable.
 
+> **MCP setup (recommended):** step-by-step for Atlassian, GitHub, GitHub Enterprise,
+> Google Workspace, and custom MCP — including every extra `.env` / Cloud Console
+> setting — is in [`MCP_CONNECTORS.md`](MCP_CONNECTORS.md).
+
 ### Set up a connector
 
 1. Enter the token in the UI (**Settings → Connector credentials**, or the token field

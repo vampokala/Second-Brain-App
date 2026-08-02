@@ -217,6 +217,7 @@ class McpServer(Base):
     url: Mapped[str] = mapped_column(Text, nullable=False)
     auth_mode: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'oauth'"))
     token_env: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    auth_email: Mapped[str | None] = mapped_column(String(256), nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(

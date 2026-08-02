@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import os
@@ -34,6 +35,25 @@ class _BearerAuth(httpx.Auth):
     def auth_flow(self, request: httpx.Request):
         request.headers["Authorization"] = f"Bearer {self._token}"
         yield request
+
+
+class _BasicAuth(httpx.Auth):
+    """Static Authorization: Basic email:token (Atlassian personal API tokens)."""
+
+    def __init__(self, email: str, token: str) -> None:
+        raw = f"{email}:{token}".encode()
+        self._header = f"Basic {base64.b64encode(raw).decode()}"
+
+    def auth_flow(self, request: httpx.Request):
+        request.headers["Authorization"] = self._header
+        yield request
+
+
+def _atlassian_email(server: Any) -> str:
+    email = str(getattr(server, "auth_email", None) or "").strip()
+    if email:
+        return email
+    return (os.getenv("JIRA_EMAIL") or os.getenv("ATLASSIAN_EMAIL") or "").strip()
 
 
 def _streamable_client():
@@ -128,6 +148,12 @@ async def build_mcp_auth(
         token = os.getenv(env_name) or ""
         if not token.strip():
             raise ConnectorError(f"Environment variable {env_name} is empty.")
+        # Atlassian personal API tokens need Basic email:token; service-account
+        # keys use Bearer. Prefer Basic when an email is configured.
+        preset = (getattr(server, "preset", None) or "").lower()
+        email = _atlassian_email(server)
+        if preset == "atlassian" and email:
+            return _BasicAuth(email, token.strip())
         return _BearerAuth(token.strip())
     if mode == "oauth":
         storage = DbTokenStorage(str(server.id), session_factory)

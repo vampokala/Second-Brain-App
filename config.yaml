@@ -36,6 +36,8 @@ llm:
     openai: gpt-5.4-mini
     anthropic: claude-sonnet-4-6
     gemini: gemini-3.1-flash-lite
+    # Set via Settings (or GATEWAY_DEFAULT_MODEL) for org AI Gateway / LiteLLM.
+    gateway: ""
   allowed_models_by_provider:
     ollama:
       - qwen2.5:7b
@@ -53,6 +55,8 @@ llm:
     gemini:
       - gemini-3.1-flash-lite
       - gemini-3.1-pro-preview
+    # Custom model route names are added when saved in Settings → AI Gateway.
+    gateway: []
   request_timeout_seconds: 60
 
 # Phase 4: API production controls

@@ -14,6 +14,7 @@ class McpServerOut(BaseModel):
     connected: bool
     connector_types: list[str] = Field(default_factory=list)
     enabled: bool = True
+    auth_email: str | None = None
 
 
 class McpServerUpsertBody(BaseModel):
@@ -22,6 +23,7 @@ class McpServerUpsertBody(BaseModel):
     url: HttpUrl | None = None
     auth_mode: str = "oauth"
     token_env: str | None = None
+    auth_email: str | None = None
 
 
 class McpConnectResponse(BaseModel):

@@ -31,6 +31,9 @@ def test_llm_config_endpoint():
     assert isinstance(data["allowed_models_by_provider"]["ollama"], list)
     assert isinstance(data["provider_key_configured"], dict)
     assert "ollama" in data["provider_key_configured"]
+    assert "gateway" in data["allowed_models_by_provider"]
+    assert "gateway" in data["provider_key_configured"]
+    assert isinstance(data.get("gateway_base_url"), str)
     assert isinstance(data["demo_mode"], bool)
 
 

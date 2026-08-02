@@ -28,6 +28,8 @@ class FakePipeline:
 @pytest.mark.asyncio
 async def test_sync_connector_ingests_items_from_mcp_server_and_advances_cursor(monkeypatch):
     async def fake_call(session, tool, args, timeout_s=60.0):
+        if tool == "getAccessibleAtlassianResources":
+            return {"resources": [{"id": "cloud-1"}]}
         return {
             "issues": [
                 {
@@ -142,6 +144,8 @@ async def test_sync_connector_reports_failed_status_when_tool_errors(monkeypatch
 @pytest.mark.asyncio
 async def test_resync_with_same_data_upserts_same_relpaths(monkeypatch):
     async def fake_call(session, tool, args, timeout_s=60.0):
+        if tool == "getAccessibleAtlassianResources":
+            return {"resources": [{"id": "cloud-1"}]}
         return {
             "issues": [
                 {

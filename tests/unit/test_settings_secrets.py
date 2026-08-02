@@ -14,15 +14,23 @@ from src.api.settings_secrets import (
 
 
 def test_connector_keys_map_to_expected_env_names():
+    from src.api.settings_secrets import ENV_PLAIN
+
     assert ENV_WINS["github_token"] == "GITHUB_TOKEN"
     assert ENV_WINS["jira_api_token"] == "JIRA_API_TOKEN"
     assert ENV_WINS["confluence_api_token"] == "CONFLUENCE_API_TOKEN"
     assert ENV_WINS["slack_bot_token"] == "SLACK_BOT_TOKEN"
+    assert ENV_WINS["google_oauth_client_id"] == "GOOGLE_OAUTH_CLIENT_ID"
+    assert ENV_WINS["google_oauth_client_secret"] == "GOOGLE_OAUTH_CLIENT_SECRET"
+    assert ENV_WINS["gateway_api_key"] == "GATEWAY_API_KEY"
+    assert ENV_PLAIN["gateway_base_url"] == "GATEWAY_BASE_URL"
 
 
 def test_is_secret_setting_key_for_connector_and_llm():
     assert is_secret_setting_key("github_token") is True
     assert is_secret_setting_key("openai_api_key") is True
+    assert is_secret_setting_key("gateway_api_key") is True
+    assert is_secret_setting_key("gateway_base_url") is False
     assert is_secret_setting_key("default_model_by_provider") is False
 
 
@@ -56,6 +64,18 @@ def test_hydrate_skips_when_env_already_set(monkeypatch):
 
 def test_hydrate_noop_for_unknown_key(monkeypatch):
     assert hydrate_env_from_value("not_a_secret", {"secret": "x"}) is False
+
+
+def test_hydrate_gateway_base_url_when_missing(monkeypatch):
+    monkeypatch.delenv("GATEWAY_BASE_URL", raising=False)
+    import src.api.llm_settings_overlay as overlay
+
+    overlay._locked_env.clear()
+    overlay._lock_captured = False
+    assert hydrate_env_from_value("gateway_base_url", "http://localhost:4000/v1") is True
+    import os
+
+    assert os.getenv("GATEWAY_BASE_URL") == "http://localhost:4000/v1"
 
 
 def test_strip_connector_secrets_removes_token_fields():

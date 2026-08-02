@@ -20,6 +20,8 @@ services:
     build: .
     ports:
       - "127.0.0.1:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${VAULT_HOST_PATH:-/Users/vamshipokala/Documents/Second-Brain}:/vault
       - hf_cache:/root/.cache/huggingface
@@ -42,12 +44,18 @@ services:
       HF_HOME: /root/.cache/huggingface
       DOC_API_KEYS: ${DOC_API_KEYS:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      WORKSPACE_MCP_URL: ${WORKSPACE_MCP_URL:-http://workspace-mcp:8000/mcp}
+      # Browser + API must share a host Google OAuth can redirect through.
+      WORKSPACE_MCP_URL: ${WORKSPACE_MCP_URL:-http://host.docker.internal:8001/mcp}
       MCP_OAUTH_REDIRECT_URI: ${MCP_OAUTH_REDIRECT_URI:-http://localhost:8000/mcp/oauth/callback}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
       JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
       CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      GITHUB_HOST: ${GITHUB_HOST:-}
+      GITHUB_API_URL: ${GITHUB_API_URL:-}
+      GITHUB_MCP_URL: ${GITHUB_MCP_URL:-}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
       GITHUB_OAUTH_SCOPES: ${GITHUB_OAUTH_SCOPES:-repo read:org read:user user:email}
@@ -59,17 +67,24 @@ services:
     restart: unless-stopped
 
   workspace-mcp:
-    # Community Google Workspace MCP server (Gmail + Chat) as a local sidecar.
-    # Configure GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET in .env.
-    # The sidecar owns Google OAuth; the API talks to it as an unauthenticated
-    # internal MCP endpoint (WORKSPACE_MCP_URL).
-    image: ${WORKSPACE_MCP_IMAGE:-uspacy/workspace-mcp:latest}
+    # Google Workspace MCP (Gmail + Chat). Optional — enable with --profile mcp.
+    # Official image: https://github.com/taylorwilsdon/google_workspace_mcp
     profiles: ["mcp"]
+    image: ${WORKSPACE_MCP_IMAGE:-ghcr.io/taylorwilsdon/google_workspace_mcp:latest}
     environment:
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
-      WORKSPACE_MCP_ENABLED_SERVICES: ${WORKSPACE_MCP_ENABLED_SERVICES:-gmail,chat}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:8001/oauth2callback}
+      MCP_ENABLE_OAUTH21: ${MCP_ENABLE_OAUTH21:-true}
       MCP_TRANSPORT: streamable-http
+      WORKSPACE_MCP_ENABLED_SERVICES: ${WORKSPACE_MCP_ENABLED_SERVICES:-gmail,chat}
+      WORKSPACE_MCP_HOST: "0.0.0.0"
+      WORKSPACE_MCP_PORT: "8000"
+      WORKSPACE_MCP_BASE_URI: ${WORKSPACE_MCP_BASE_URI:-http://localhost}
+      WORKSPACE_EXTERNAL_URL: ${WORKSPACE_EXTERNAL_URL:-http://localhost:8001}
+      WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS: ${WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS:-http://localhost:*/mcp/oauth/callback,http://127.0.0.1:*/mcp/oauth/callback}
+      FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY: ${FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY:-localdev-change-me-google-mcp-jwt}
+      OAUTHLIB_INSECURE_TRANSPORT: "1"
     ports:
       - "127.0.0.1:${WORKSPACE_MCP_HOST_PORT:-8001}:8000"
     volumes:

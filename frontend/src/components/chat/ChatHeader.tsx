@@ -12,7 +12,12 @@ type Props = {
   onScopeToggle?: (s: string) => void
 }
 
-const PROVIDER_OPTIONS = ['ollama', 'openai', 'anthropic', 'gemini']
+const PROVIDER_OPTIONS = ['ollama', 'openai', 'anthropic', 'gemini', 'gateway']
+
+function providerLabel(provider: string): string {
+  if (provider === 'gateway') return 'AI Gateway'
+  return provider
+}
 
 const SCOPE_PILLS: Array<{ value: string; label: string; helper: string }> = [
   { value: 'vault', label: 'Vault', helper: 'Search your indexed vault' },
@@ -93,20 +98,23 @@ export function ChatHeader({
           >
             {!knownModel && model ? (
               <option value={`${provider}::${model}`}>
-                {provider}/{model} (custom)
+                {providerLabel(provider)}/{model} (custom)
               </option>
             ) : null}
             {PROVIDER_OPTIONS.flatMap((p) => {
               const list = allowedModelsByProvider?.[p] ?? []
               const configured = providerKeyConfigured?.[p]
+              const label = providerLabel(p)
               return list.map((m) => (
                 <option key={`${p}::${m}`} value={`${p}::${m}`}>
-                  {configured === false ? `${p}/${m} (no key)` : `${p}/${m}`}
+                  {configured === false ? `${label}/${m} (no key)` : `${label}/${m}`}
                 </option>
               ))
             })}
             {modelOptions.length === 0 ? (
-              <option value={`${provider}::${model}`}>{provider}/{model || '—'}</option>
+              <option value={`${provider}::${model}`}>
+                {providerLabel(provider)}/{model || '—'}
+              </option>
             ) : null}
           </select>
         ) : (
@@ -128,7 +136,9 @@ export function ChatHeader({
             >
               {PROVIDER_OPTIONS.map((p) => (
                 <option key={p} value={p}>
-                  {providerKeyConfigured?.[p] === false ? `${p} (no key)` : p}
+                  {providerKeyConfigured?.[p] === false
+                    ? `${providerLabel(p)} (no key)`
+                    : providerLabel(p)}
                 </option>
               ))}
             </select>

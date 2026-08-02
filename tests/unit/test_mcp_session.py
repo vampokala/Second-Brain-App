@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 from src.core.connectors.base import ConnectorError
-from src.core.mcp.session import _BearerAuth, build_mcp_auth, call_tool_json
+from src.core.mcp.session import _BasicAuth, _BearerAuth, build_mcp_auth, call_tool_json
 
 
 class _FakeResult:
@@ -64,7 +64,39 @@ async def test_call_tool_json_returns_empty_list_for_empty_content():
 @pytest.mark.asyncio
 async def test_build_mcp_auth_uses_env_bearer_when_token_mode(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "ghp_test")
-    server = SimpleNamespace(id="1", url="https://x", auth_mode="token", token_env="GITHUB_TOKEN")
+    server = SimpleNamespace(id="1", url="https://x", auth_mode="token", token_env="GITHUB_TOKEN", preset="github")
+    auth = await build_mcp_auth(server, lambda: None)
+    assert isinstance(auth, _BearerAuth)
+
+
+@pytest.mark.asyncio
+async def test_build_mcp_auth_uses_basic_for_atlassian_with_email(monkeypatch):
+    monkeypatch.setenv("JIRA_API_TOKEN", "atl_token")
+    server = SimpleNamespace(
+        id="1",
+        url="https://mcp.atlassian.com/v1/mcp",
+        auth_mode="token",
+        token_env="JIRA_API_TOKEN",
+        preset="atlassian",
+        auth_email="you@acme.com",
+    )
+    auth = await build_mcp_auth(server, lambda: None)
+    assert isinstance(auth, _BasicAuth)
+
+
+@pytest.mark.asyncio
+async def test_build_mcp_auth_atlassian_falls_back_to_bearer_without_email(monkeypatch):
+    monkeypatch.delenv("JIRA_EMAIL", raising=False)
+    monkeypatch.delenv("ATLASSIAN_EMAIL", raising=False)
+    monkeypatch.setenv("JIRA_API_TOKEN", "svc_key")
+    server = SimpleNamespace(
+        id="1",
+        url="https://mcp.atlassian.com/v1/mcp",
+        auth_mode="token",
+        token_env="JIRA_API_TOKEN",
+        preset="atlassian",
+        auth_email=None,
+    )
     auth = await build_mcp_auth(server, lambda: None)
     assert isinstance(auth, _BearerAuth)
 

@@ -1,6 +1,5 @@
 """Unit tests for OAuthFlowManager."""
 
-
 from __future__ import annotations
 
 import asyncio
@@ -67,10 +66,21 @@ async def test_github_oauth_requires_client_credentials(monkeypatch):
 async def test_github_oauth_returns_authorize_url_immediately(monkeypatch):
     monkeypatch.setenv("GITHUB_OAUTH_CLIENT_ID", "cid")
     monkeypatch.setenv("GITHUB_OAUTH_CLIENT_SECRET", "csecret")
+    monkeypatch.delenv("GITHUB_HOST", raising=False)
     mgr = OAuthFlowManager(session_factory=lambda: None, provider_factory=_FakeProvider)
     url = await mgr.start(_server(preset="github", url="https://api.githubcopilot.com/mcp"))
     assert url.startswith("https://github.com/login/oauth/authorize?")
     assert "client_id=cid" in url
+
+
+@pytest.mark.asyncio
+async def test_github_enterprise_oauth_uses_github_host(monkeypatch):
+    monkeypatch.setenv("GITHUB_OAUTH_CLIENT_ID", "cid")
+    monkeypatch.setenv("GITHUB_OAUTH_CLIENT_SECRET", "csecret")
+    monkeypatch.setenv("GITHUB_HOST", "https://github.company.com")
+    mgr = OAuthFlowManager(session_factory=lambda: None, provider_factory=_FakeProvider)
+    url = await mgr.start(_server(preset="github_enterprise", url="http://localhost:8080/mcp"))
+    assert url.startswith("https://github.company.com/login/oauth/authorize?")
 
 
 @pytest.mark.asyncio

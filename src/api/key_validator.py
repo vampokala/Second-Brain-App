@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import httpx
+from src.api.llm_settings_overlay import resolved_gateway_base_url
 from src.utils.config import load_config
 
 
@@ -14,21 +15,24 @@ async def validate_key(provider: str, api_key: str | None) -> tuple[bool, str]:
     timeout = 30.0
     try:
         if p == "openai":
-            k = (api_key or os.getenv("OPENAI_API_KEY") or "").strip()
-            if not k:
-                return False, "missing key"
-            url = cfg.openai_base_url.rstrip("/") + "/chat/completions"
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                r = await client.post(
-                    url,
-                    headers={"Authorization": f"Bearer {k}"},
-                    json={
-                        "model": cfg.default_model_by_provider.get("openai", "gpt-5.4-mini"),
-                        "messages": [{"role": "user", "content": "ping"}],
-                        "max_tokens": 1,
-                    },
-                )
-            return r.is_success, (r.text[:200] if not r.is_success else "ok")
+            return await _validate_openai_compatible(
+                api_key=api_key or os.getenv("OPENAI_API_KEY"),
+                base_url=cfg.openai_base_url,
+                model=cfg.default_model_by_provider.get("openai", "gpt-5.4-mini"),
+                timeout=timeout,
+            )
+        if p in ("gateway", "litellm", "ai_gateway"):
+            model = (
+                (os.getenv("GATEWAY_DEFAULT_MODEL") or "").strip()
+                or cfg.default_model_by_provider.get("gateway")
+                or "gpt-4o-mini"
+            )
+            return await _validate_openai_compatible(
+                api_key=api_key or os.getenv("GATEWAY_API_KEY"),
+                base_url=resolved_gateway_base_url(cfg),
+                model=model,
+                timeout=timeout,
+            )
         if p == "anthropic":
             k = (api_key or os.getenv("ANTHROPIC_API_KEY") or "").strip()
             if not k:
@@ -54,3 +58,27 @@ async def validate_key(provider: str, api_key: str | None) -> tuple[bool, str]:
     except Exception as exc:
         return False, str(exc)[:200]
     return False, "unsupported"
+
+
+async def _validate_openai_compatible(
+    *,
+    api_key: str | None,
+    base_url: str,
+    model: str,
+    timeout: float,
+) -> tuple[bool, str]:
+    k = (api_key or "").strip()
+    if not k:
+        return False, "missing key"
+    url = base_url.rstrip("/") + "/chat/completions"
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        r = await client.post(
+            url,
+            headers={"Authorization": f"Bearer {k}"},
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": "ping"}],
+                "max_tokens": 1,
+            },
+        )
+    return r.is_success, (r.text[:200] if not r.is_success else "ok")

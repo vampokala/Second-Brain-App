@@ -9,6 +9,7 @@ export type McpServer = {
   connected: boolean
   connectorTypes: string[]
   enabled: boolean
+  authEmail?: string | null
 }
 
 type McpServerApi = {
@@ -20,6 +21,7 @@ type McpServerApi = {
   connected: boolean
   connector_types: string[]
   enabled: boolean
+  auth_email?: string | null
 }
 
 export type McpTool = {
@@ -34,6 +36,7 @@ export type McpServerUpsert = {
   url?: string
   auth_mode?: string
   token_env?: string
+  auth_email?: string
 }
 
 async function asJson<T>(res: Response): Promise<T> {
@@ -60,6 +63,7 @@ function mapServer(row: McpServerApi): McpServer {
     connected: row.connected,
     connectorTypes: row.connector_types ?? [],
     enabled: row.enabled,
+    authEmail: row.auth_email ?? null,
   }
 }
 

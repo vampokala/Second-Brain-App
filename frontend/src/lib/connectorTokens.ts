@@ -30,6 +30,24 @@ export const CONNECTOR_TOKEN_SETTINGS = [
   },
 ] as const
 
+/** Google Cloud OAuth client used by workspace-mcp (Gmail / Chat Connect). */
+export const GOOGLE_OAUTH_SETTINGS = [
+  {
+    settingKey: 'google_oauth_client_id',
+    envName: 'GOOGLE_OAUTH_CLIENT_ID',
+    label: 'Google OAuth Client ID',
+    helper:
+      'Web application client from Google Cloud Console. Also put this in .env so workspace-mcp receives it.',
+  },
+  {
+    settingKey: 'google_oauth_client_secret',
+    envName: 'GOOGLE_OAUTH_CLIENT_SECRET',
+    label: 'Google OAuth Client Secret',
+    helper:
+      'Authorized redirect URIs must include http://localhost:8001/oauth2callback and http://localhost:8000/mcp/oauth/callback.',
+  },
+] as const
+
 export type ConnectorTokenSetting = (typeof CONNECTOR_TOKEN_SETTINGS)[number]
 
 export function tokenSettingForType(type: string): ConnectorTokenSetting | undefined {

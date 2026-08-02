@@ -388,15 +388,18 @@ def health(request: Request) -> HealthModel:
 @app.get("/config/llm", response_model=LLMConfigModel)
 def llm_config() -> LLMConfigModel:
     """Allowed providers/models and defaults from server config (for UI dropdowns)."""
+    from src.api.llm_settings_overlay import merge_for_config
+
     llm = _cfg.llm
-    provider_key_configured = {
-        provider: llm.provider_has_key(provider) for provider in llm.allowed_models_by_provider.keys()
-    }
+    merged = merge_for_config(llm)
+    providers = set(merged["allowed_models_by_provider"]) | set(llm.allowed_models_by_provider)
+    provider_key_configured = {provider: llm.provider_has_key(provider) for provider in providers}
     return LLMConfigModel(
-        default_provider=llm.default_provider,
-        default_model_by_provider=dict(llm.default_model_by_provider),
-        allowed_models_by_provider={k: list(v) for k, v in llm.allowed_models_by_provider.items()},
+        default_provider=merged["default_provider"],
+        default_model_by_provider=merged["default_model_by_provider"],
+        allowed_models_by_provider=merged["allowed_models_by_provider"],
         provider_key_configured=provider_key_configured,
+        gateway_base_url=merged["gateway_base_url"],
         demo_mode=os.getenv("DOC_PROFILE", "").strip().lower() == "demo",
     )
 

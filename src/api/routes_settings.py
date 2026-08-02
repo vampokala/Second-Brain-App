@@ -11,7 +11,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.key_validator import validate_key
+from src.api.llm_settings_overlay import apply_patch, boot_env_has, lock_was_captured
 from src.api.settings_secrets import (
+    ENV_PLAIN,
     ENV_WINS,
     extract_secret,
     hydrate_env_from_rows,
@@ -59,6 +61,30 @@ async def list_personas() -> PersonasResponse:
     )
 
 
+def _env_override_keys() -> list[str]:
+    keys: list[str] = []
+    for setting_key, env_name in ENV_WINS.items():
+        if os.getenv(env_name):
+            keys.append(setting_key)
+    for setting_key, env_name in ENV_PLAIN.items():
+        if boot_env_has(env_name):
+            keys.append(setting_key)
+    return sorted(set(keys))
+
+
+def _is_env_locked_setting(setting_key: str) -> bool:
+    """True when Docker/host env must win over a Settings PATCH."""
+    env_name = ENV_WINS.get(setting_key) or ENV_PLAIN.get(setting_key)
+    if not env_name:
+        return False
+    if boot_env_has(env_name):
+        return True
+    if lock_was_captured():
+        # After startup lock: DB-hydrated values may be updated from the UI.
+        return False
+    return bool(os.getenv(env_name))
+
+
 @router.get("", response_model=SettingsResponse)
 async def get_settings(session: AsyncSession = Depends(get_async_session)) -> SettingsResponse:
     if not os.getenv("DATABASE_URL", "").strip():
@@ -66,12 +92,13 @@ async def get_settings(session: AsyncSession = Depends(get_async_session)) -> Se
     res = await session.execute(select(AppSetting))
     rows = {r.key: r.value for r in res.scalars().all()}
     out: dict[str, Any] = {k: _mask_value(k, v) for k, v in rows.items()}
-    env_keys: list[str] = []
     for k, env in ENV_WINS.items():
         if os.getenv(env):
-            env_keys.append(k)
             out[k] = mask_secret(os.getenv(env) or "")
-    return SettingsResponse(values=out, env_override_keys=env_keys)
+    for k, env in ENV_PLAIN.items():
+        if boot_env_has(env) or k not in out and os.getenv(env):
+            out[k] = os.getenv(env) or ""
+    return SettingsResponse(values=out, env_override_keys=_env_override_keys())
 
 
 @router.patch("", response_model=SettingsResponse)
@@ -90,20 +117,27 @@ async def update_settings(
 
     existing_rows = await session.execute(select(AppSetting).where(AppSetting.key.in_(list(body.patch.keys()))))
     existing_map = {r.key: r.value for r in existing_rows.scalars().all()}
+    applied: dict[str, Any] = {}
 
     for k, v in body.patch.items():
-        if k in ENV_WINS and os.getenv(ENV_WINS[k]):
+        if _is_env_locked_setting(k):
             continue
         if is_secret_setting_key(k):
             v = wrap_secret(v)
-            hydrate_env_from_value(k, v)
+            hydrate_env_from_value(k, v, force=True)
+        elif k in ENV_PLAIN:
+            v = str(v or "").strip()
+            hydrate_env_from_value(k, v, force=True)
         elif isinstance(v, dict) and isinstance(existing_map.get(k), dict):
             # Nested maps (e.g. default_model_by_provider): merge incrementally.
             merged = dict(existing_map[k])
             merged.update(v)
             v = merged
         session.merge(AppSetting(key=k, value=json.loads(json.dumps(v))))
+        applied[k] = v
     await session.commit()
+    if applied:
+        apply_patch(applied)
     return await get_settings(session)
 
 
@@ -111,8 +145,10 @@ async def hydrate_secrets_from_db() -> list[str]:
     """Load secrets from app_settings into os.environ (skip keys already in env)."""
     if not os.getenv("DATABASE_URL", "").strip():
         return []
+    from src.api.llm_settings_overlay import lock_existing_env
     from src.db.session import async_session_factory
 
+    lock_existing_env()
     factory = async_session_factory()
     async with factory() as session:
         res = await session.execute(select(AppSetting))

@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import os
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator, Optional, Protocol
+from typing import Protocol
 
 import ollama
 import requests
@@ -32,11 +33,9 @@ def _raise_for_status_with_detail(resp: requests.Response, provider: str) -> Non
 
 
 class LLMProvider(Protocol):
-    def generate(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> str:
-        ...
+    def generate(self, prompt: str, model: str, api_key_override: str | None = None) -> str: ...
 
-    def stream(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> Iterator[str]:
-        ...
+    def stream(self, prompt: str, model: str, api_key_override: str | None = None) -> Iterator[str]: ...
 
 
 @dataclass
@@ -50,11 +49,11 @@ class OllamaProvider:
         self.base_url = base_url
         self._client = ollama.Client(host=base_url)
 
-    def generate(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> str:
+    def generate(self, prompt: str, model: str, api_key_override: str | None = None) -> str:
         resp = self._chat_with_retry(model=model, prompt=prompt, stream=False)
         return str(resp.get("message", {}).get("content") or "")
 
-    def stream(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> Iterator[str]:
+    def stream(self, prompt: str, model: str, api_key_override: str | None = None) -> Iterator[str]:
         attempts = 3
         for idx in range(attempts):
             started = False
@@ -110,17 +109,38 @@ class OllamaProvider:
 
 
 class OpenAIProvider:
-    def __init__(self, base_url: str, timeout_seconds: int) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.timeout_seconds = timeout_seconds
+    """OpenAI Chat Completions client (also used for OpenAI-compatible gateways)."""
 
-    def _key(self, api_key_override: Optional[str] = None) -> str:
-        key = api_key_override or os.getenv("OPENAI_API_KEY")
+    def __init__(
+        self,
+        base_url: str,
+        timeout_seconds: int,
+        *,
+        api_key_env: str = "OPENAI_API_KEY",
+        base_url_env: str | None = None,
+        provider_label: str = "openai",
+    ) -> None:
+        self._default_base_url = base_url.rstrip("/")
+        self.timeout_seconds = timeout_seconds
+        self.api_key_env = api_key_env
+        self.base_url_env = base_url_env
+        self.provider_label = provider_label
+
+    @property
+    def base_url(self) -> str:
+        if self.base_url_env:
+            env_url = (os.getenv(self.base_url_env) or "").strip()
+            if env_url:
+                return env_url.rstrip("/")
+        return self._default_base_url
+
+    def _key(self, api_key_override: str | None = None) -> str:
+        key = api_key_override or os.getenv(self.api_key_env)
         if not key:
-            raise ValueError("OPENAI_API_KEY is required for OpenAI provider")
+            raise ValueError(f"{self.api_key_env} is required for {self.provider_label} provider")
         return key
 
-    def generate(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> str:
+    def generate(self, prompt: str, model: str, api_key_override: str | None = None) -> str:
         resp = requests.post(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self._key(api_key_override)}"},
@@ -131,11 +151,11 @@ class OpenAIProvider:
             },
             timeout=self.timeout_seconds,
         )
-        _raise_for_status_with_detail(resp, "openai")
+        _raise_for_status_with_detail(resp, self.provider_label)
         data = resp.json()
         return str(data["choices"][0]["message"]["content"])
 
-    def stream(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> Iterator[str]:
+    def stream(self, prompt: str, model: str, api_key_override: str | None = None) -> Iterator[str]:
         with requests.post(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self._key(api_key_override)}"},
@@ -148,7 +168,7 @@ class OpenAIProvider:
             timeout=self.timeout_seconds,
             stream=True,
         ) as resp:
-            _raise_for_status_with_detail(resp, "openai")
+            _raise_for_status_with_detail(resp, self.provider_label)
             for raw in resp.iter_lines(decode_unicode=True):
                 if not raw:
                     continue
@@ -173,13 +193,13 @@ class AnthropicProvider:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
-    def _key(self, api_key_override: Optional[str] = None) -> str:
+    def _key(self, api_key_override: str | None = None) -> str:
         key = api_key_override or os.getenv("ANTHROPIC_API_KEY")
         if not key:
             raise ValueError("ANTHROPIC_API_KEY is required for Anthropic provider")
         return key
 
-    def generate(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> str:
+    def generate(self, prompt: str, model: str, api_key_override: str | None = None) -> str:
         resp = requests.post(
             f"{self.base_url}/messages",
             headers={
@@ -201,7 +221,7 @@ class AnthropicProvider:
             return ""
         return str(blocks[0].get("text", ""))
 
-    def stream(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> Iterator[str]:
+    def stream(self, prompt: str, model: str, api_key_override: str | None = None) -> Iterator[str]:
         with requests.post(
             f"{self.base_url}/messages",
             headers={
@@ -244,13 +264,13 @@ class GeminiProvider:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
-    def _key(self, api_key_override: Optional[str] = None) -> str:
+    def _key(self, api_key_override: str | None = None) -> str:
         key = api_key_override or os.getenv("GEMINI_API_KEY")
         if not key:
             raise ValueError("GEMINI_API_KEY is required for Gemini provider")
         return key
 
-    def generate(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> str:
+    def generate(self, prompt: str, model: str, api_key_override: str | None = None) -> str:
         resp = requests.post(
             f"{self.base_url}/models/{model}:generateContent",
             params={"key": self._key(api_key_override)},
@@ -265,7 +285,7 @@ class GeminiProvider:
         parts = candidates[0].get("content", {}).get("parts", [])
         return str(parts[0].get("text", "")) if parts else ""
 
-    def stream(self, prompt: str, model: str, api_key_override: Optional[str] = None) -> Iterator[str]:
+    def stream(self, prompt: str, model: str, api_key_override: str | None = None) -> Iterator[str]:
         with requests.post(
             f"{self.base_url}/models/{model}:streamGenerateContent",
             params={"key": self._key(api_key_override), "alt": "sse"},
@@ -306,12 +326,19 @@ class LLMProviderRouter:
             "openai": OpenAIProvider(settings.openai_base_url, settings.request_timeout_seconds),
             "anthropic": AnthropicProvider(settings.anthropic_base_url, settings.request_timeout_seconds),
             "gemini": GeminiProvider(settings.gemini_base_url, settings.request_timeout_seconds),
+            "gateway": OpenAIProvider(
+                settings.gateway_base_url,
+                settings.request_timeout_seconds,
+                api_key_env="GATEWAY_API_KEY",
+                base_url_env="GATEWAY_BASE_URL",
+                provider_label="gateway",
+            ),
         }
 
     def resolve_selection(
         self,
-        provider: Optional[str],
-        model: Optional[str],
+        provider: str | None,
+        model: str | None,
         *,
         has_api_key_override: bool = False,
     ) -> LLMSelection:
@@ -322,7 +349,7 @@ class LLMProviderRouter:
         selected_model = self.settings.resolve_model(normalized, model)
         return LLMSelection(provider=normalized, model=selected_model)
 
-    def generate(self, provider: str, model: str, prompt: str, api_key_override: Optional[str] = None) -> str:
+    def generate(self, provider: str, model: str, prompt: str, api_key_override: str | None = None) -> str:
         impl = self._providers.get(provider)
         if impl is None:
             raise ValueError(f"Unsupported provider: {provider}")
@@ -333,7 +360,7 @@ class LLMProviderRouter:
         provider: str,
         model: str,
         prompt: str,
-        api_key_override: Optional[str] = None,
+        api_key_override: str | None = None,
     ) -> Iterator[str]:
         impl = self._providers.get(provider)
         if impl is None:

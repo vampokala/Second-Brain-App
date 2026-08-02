@@ -23,8 +23,13 @@ import {
 
 function pickDefaultChatProvider(cfg: LlmConfigModel): string {
   const keys = Object.keys(cfg.allowed_models_by_provider)
-  const isUsable = (p: string) =>
-    (cfg.allowed_models_by_provider[p]?.length ?? 0) > 0 && cfg.provider_key_configured[p] === true
+  const isUsable = (p: string) => {
+    if (cfg.provider_key_configured[p] !== true) return false
+    if (p === 'gateway') {
+      return Boolean(cfg.default_model_by_provider[p] || cfg.allowed_models_by_provider[p]?.length)
+    }
+    return (cfg.allowed_models_by_provider[p]?.length ?? 0) > 0
+  }
   if (isUsable(cfg.default_provider)) return cfg.default_provider
   const usable = keys.find(isUsable)
   if (usable) return usable
@@ -34,8 +39,8 @@ function pickDefaultChatProvider(cfg: LlmConfigModel): string {
 function pickDefaultChatModel(cfg: LlmConfigModel, provider: string): string {
   const models = cfg.allowed_models_by_provider[provider] ?? []
   const def = cfg.default_model_by_provider[provider]
-  if (def && models.includes(def)) return def
-  return models[0] ?? ''
+  if (def && (models.includes(def) || provider === 'gateway')) return def
+  return models[0] ?? def ?? ''
 }
 
 type Props = {

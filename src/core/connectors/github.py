@@ -6,17 +6,18 @@ from collections.abc import AsyncIterator
 
 import httpx
 from src.core.connectors.base import ConnectorError, SourceConnector, SourceItem
+from src.core.connectors.github_host import resolve_github_api_base
 
-_DEFAULT_API = "https://api.github.com"
 _PAGE_SIZE = 100
 
 
 class GitHubConnector(SourceConnector):
     """``resource_id`` is ``"owner/repo"``.
 
-    config keys: ``base_url`` (default api.github.com), ``branch``,
-    ``include_issues`` (bool). ``token`` is a read-only PAT (optional for
-    public repos, but recommended to avoid rate limits).
+    config keys: ``base_url`` (REST API root — ``https://api.github.com`` or
+    ``https://github.company.com/api/v3``), ``branch``, ``include_issues`` (bool).
+    Defaults follow ``GITHUB_API_URL`` / ``GITHUB_HOST`` when set.
+    ``token`` is a read-only PAT (optional for public repos on github.com).
     """
 
     source_type = "github"
@@ -32,7 +33,7 @@ class GitHubConnector(SourceConnector):
         if "/" not in resource_id:
             raise ConnectorError("GitHub resource must be 'owner/repo'.")
         self.owner, self.repo = resource_id.split("/", 1)
-        self.base_url = (config.get("base_url") or _DEFAULT_API).rstrip("/")
+        self.base_url = resolve_github_api_base(config)
         self._client = client
 
     def _headers(self) -> dict[str, str]:

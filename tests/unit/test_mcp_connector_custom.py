@@ -246,24 +246,48 @@ def test_legacy_types_still_registered():
         assert key in CONNECTOR_TYPES
 
 
-def test_presets_have_urls_except_custom():
+def test_presets_have_urls_except_custom_and_ghes():
     for key, preset in PRESETS.items():
-        if key == "custom":
+        if key in {"custom", "github_enterprise"}:
             assert preset.url is None
         else:
             assert preset.url
 
 
-def test_github_preset_url_has_no_trailing_slash():
+def test_github_preset_url_has_no_trailing_slash(monkeypatch):
     """Trailing slash breaks GitHub OAuth protected-resource metadata matching."""
     from src.core.mcp.servers import normalize_mcp_url, resolve_preset_url
 
+    monkeypatch.delenv("GITHUB_MCP_URL", raising=False)
     assert not PRESETS["github"].url.endswith("/")
     assert resolve_preset_url("github") == "https://api.githubcopilot.com/mcp"
     assert normalize_mcp_url("https://api.githubcopilot.com/mcp/") == ("https://api.githubcopilot.com/mcp")
+
+
+def test_github_enterprise_preset_resolves_mcp_url_from_env(monkeypatch):
+    from src.core.mcp.servers import resolve_preset_url
+
+    monkeypatch.delenv("GITHUB_MCP_URL", raising=False)
+    assert resolve_preset_url("github_enterprise") is None
+    monkeypatch.setenv("GITHUB_MCP_URL", "http://ghes-mcp:8080/mcp")
+    assert resolve_preset_url("github_enterprise") == "http://ghes-mcp:8080/mcp"
+    assert resolve_preset_url("github_enterprise", "http://override/mcp") == "http://override/mcp"
 
 
 def test_preset_connector_types_all_exist_in_registry():
     for preset in PRESETS.values():
         for ctype in preset.connector_types:
             assert ctype in CONNECTOR_TYPES
+
+
+def test_google_workspace_preset_uses_oauth():
+    preset = PRESETS["google_workspace"]
+    assert preset.auth_modes == ("oauth",)
+    assert "mcp_gmail" in preset.connector_types
+
+
+def test_atlassian_preset_uses_rovo_tool_names():
+    tools = PRESETS["atlassian"].required_tools
+    assert "searchJiraIssuesUsingJql" in tools
+    assert "searchConfluenceUsingCql" in tools
+    assert "jira_search" not in tools

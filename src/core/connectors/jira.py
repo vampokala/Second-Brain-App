@@ -82,22 +82,45 @@ class JiraConnector(SourceConnector):
             if self._client is None:
                 await client.aclose()
 
+    def _issue_item(self, issue: dict) -> SourceItem:
+        fields = issue.get("fields", {})
+        key = issue.get("key", "")
+        status = (fields.get("status") or {}).get("name", "")
+        issue_type = (fields.get("issuetype") or {}).get("name", "")
+        body = _adf_to_text(fields.get("description"))
+        return SourceItem(
+            external_id=key,
+            title=f"{key}: {fields.get('summary', '')}",
+            body_markdown=f"**Status:** {status}\n\n{body}",
+            url=f"{self.base_url}/browse/{key}",
+            updated_at=fields.get("updated", ""),
+            author=(fields.get("reporter") or {}).get("displayName"),
+            tags=[t for t in [issue_type.lower()] if t],
+        )
+
     async def fetch(self, cursor: dict | None) -> AsyncIterator[SourceItem]:
-        # JIRA expects 'yyyy/MM/dd HH:mm' for updated; we store/compare ISO and
-        # let the server filter loosely, then dedupe by stable relpath on ingest.
+        # Enhanced JQL Search API (/search/jql) replaced the removed /search endpoint.
         since = (cursor or {}).get("since")
         client = self._make_client()
-        start_at = 0
+        next_token: str | None = None
         try:
             while True:
-                payload = {
+                payload: dict[str, object] = {
                     "jql": self._jql(_to_jira_time(since)),
-                    "startAt": start_at,
                     "maxResults": _PAGE_SIZE,
-                    "fields": ["summary", "description", "updated", "reporter", "status", "issuetype"],
+                    "fields": [
+                        "summary",
+                        "description",
+                        "updated",
+                        "reporter",
+                        "status",
+                        "issuetype",
+                    ],
                 }
+                if next_token:
+                    payload["nextPageToken"] = next_token
                 resp = await client.post(
-                    f"{self.base_url}/rest/api/3/search",
+                    f"{self.base_url}/rest/api/3/search/jql",
                     json=payload,
                     headers=self._headers(),
                 )
@@ -106,22 +129,9 @@ class JiraConnector(SourceConnector):
                 data = resp.json()
                 issues = data.get("issues", [])
                 for issue in issues:
-                    fields = issue.get("fields", {})
-                    key = issue.get("key", "")
-                    status = (fields.get("status") or {}).get("name", "")
-                    issue_type = (fields.get("issuetype") or {}).get("name", "")
-                    body = _adf_to_text(fields.get("description"))
-                    yield SourceItem(
-                        external_id=key,
-                        title=f"{key}: {fields.get('summary', '')}",
-                        body_markdown=f"**Status:** {status}\n\n{body}",
-                        url=f"{self.base_url}/browse/{key}",
-                        updated_at=fields.get("updated", ""),
-                        author=(fields.get("reporter") or {}).get("displayName"),
-                        tags=[t for t in [issue_type.lower()] if t],
-                    )
-                start_at += len(issues)
-                if not issues or start_at >= data.get("total", 0):
+                    yield self._issue_item(issue)
+                next_token = data.get("nextPageToken")
+                if not next_token or not issues:
                     break
         finally:
             if self._client is None:

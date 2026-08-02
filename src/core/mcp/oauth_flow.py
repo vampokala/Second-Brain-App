@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx
 from pydantic import AnyUrl
+from src.core.connectors.github_host import is_github_enterprise, resolve_github_oauth_urls
 from src.core.mcp.errors import McpAuthError
 from src.core.mcp.token_store import DbTokenStorage
 
@@ -26,8 +27,7 @@ FlowKind = Literal["mcp_sdk", "github_app"]
 
 # GitHub remote MCP does not support Dynamic Client Registration. OAuth only
 # works with a pre-registered GitHub OAuth App (client id + secret).
-_GITHUB_AUTHORIZE = "https://github.com/login/oauth/authorize"
-_GITHUB_TOKEN = "https://github.com/login/oauth/access_token"  # noqa: S105 — endpoint URL, not a secret
+# Authorize/token URLs are resolved from GITHUB_HOST (Enterprise) or github.com.
 _GITHUB_DEFAULT_SCOPES = "repo read:org read:user user:email"
 
 
@@ -75,7 +75,7 @@ class OAuthFlowManager:
     async def start(self, server: Any) -> str:
         """Begin OAuth for ``server`` and return the authorization URL."""
         preset = getattr(server, "preset", "") or ""
-        if preset == "github" or _is_github_mcp_url(str(getattr(server, "url", ""))):
+        if preset == "github" or preset == "github_enterprise" or _is_github_mcp_url(str(getattr(server, "url", ""))):
             return await self.start_github(server)
         return await self._start_mcp_sdk(server)
 
@@ -84,14 +84,20 @@ class OAuthFlowManager:
         client_id = (os.getenv("GITHUB_OAUTH_CLIENT_ID") or "").strip()
         client_secret = (os.getenv("GITHUB_OAUTH_CLIENT_SECRET") or "").strip()
         if not client_id or not client_secret:
+            host_hint = (
+                " Register the OAuth App on your GitHub Enterprise host " "(GITHUB_HOST) when using GHES / ghe.com."
+                if is_github_enterprise()
+                else ""
+            )
             raise McpAuthError(
                 "GitHub remote MCP does not support browser OAuth without a "
                 "pre-registered GitHub OAuth App (no Dynamic Client Registration). "
                 "Use “Use API token” with GITHUB_TOKEN, or set "
                 "GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET in .env "
-                "(callback URL must be your MCP_OAUTH_REDIRECT_URI)."
+                f"(callback URL must be your MCP_OAUTH_REDIRECT_URI).{host_hint}"
             )
 
+        authorize_url, _token_url = resolve_github_oauth_urls()
         server_id = str(server.id)
         async with self._lock:
             await self._cancel_pending_for_server(server_id)
@@ -104,10 +110,8 @@ class OAuthFlowManager:
                 "state": state,
                 "allow_signup": "false",
             }
-            auth_url = f"{_GITHUB_AUTHORIZE}?{urlencode(params)}"
-            code_future: asyncio.Future[tuple[str, str | None]] = (
-                asyncio.get_running_loop().create_future()
-            )
+            auth_url = f"{authorize_url}?{urlencode(params)}"
+            code_future: asyncio.Future[tuple[str, str | None]] = asyncio.get_running_loop().create_future()
             pending = PendingAuth(
                 server_id=server_id,
                 state=state,
@@ -122,7 +126,11 @@ class OAuthFlowManager:
             self._cleanup_tasks.add(task)
             task.add_done_callback(self._cleanup_tasks.discard)
 
-        logger.info("mcp_github_oauth_started server_id=%s", server_id)
+        logger.info(
+            "mcp_github_oauth_started server_id=%s enterprise=%s",
+            server_id,
+            is_github_enterprise(),
+        )
         return auth_url
 
     async def _complete_github_oauth(
@@ -133,9 +141,10 @@ class OAuthFlowManager:
     ) -> None:
         try:
             code, _state = await pending.code_future
+            _authorize_url, token_url = resolve_github_oauth_urls()
             async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.post(
-                    _GITHUB_TOKEN,
+                    token_url,
                     headers={"Accept": "application/json"},
                     data={
                         "client_id": client_id,
@@ -180,9 +189,7 @@ class OAuthFlowManager:
             await self._cancel_pending_for_server(server_id)
 
             auth_url_holder: asyncio.Future[str] = asyncio.get_running_loop().create_future()
-            code_future: asyncio.Future[tuple[str, str | None]] = (
-                asyncio.get_running_loop().create_future()
-            )
+            code_future: asyncio.Future[tuple[str, str | None]] = asyncio.get_running_loop().create_future()
             flow_state = secrets.token_urlsafe(16)
 
             async def redirect_handler(url: str) -> None:

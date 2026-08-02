@@ -39,6 +39,7 @@ const TYPE_META: Record<
     fields: [
       { key: 'jql', label: 'JQL (optional)', placeholder: 'project = ENG ORDER BY updated' },
       { key: 'jql_extra', label: 'Extra JQL AND clause (optional)' },
+      { key: 'cloud_id', label: 'Cloud ID (optional)', placeholder: 'Auto-resolved from Atlassian' },
     ],
     mcp: true,
     preset: 'atlassian',
@@ -47,7 +48,9 @@ const TYPE_META: Record<
     label: 'Confluence (MCP)',
     icon: Plug,
     resourceLabel: 'Space key',
-    fields: [],
+    fields: [
+      { key: 'cloud_id', label: 'Cloud ID (optional)', placeholder: 'Auto-resolved from Atlassian' },
+    ],
     mcp: true,
     preset: 'atlassian',
   },
@@ -56,7 +59,14 @@ const TYPE_META: Record<
     icon: GitBranch,
     resourceLabel: 'owner/repo',
     tokenEnv: 'GITHUB_TOKEN',
-    fields: [{ key: 'include_issues', label: 'Include issues & PRs', type: 'checkbox' }],
+    fields: [
+      {
+        key: 'base_url',
+        label: 'API base (optional)',
+        placeholder: 'https://api.github.com or https://github.company.com/api/v3',
+      },
+      { key: 'include_issues', label: 'Include issues & PRs', type: 'checkbox' },
+    ],
     mcp: true,
     preset: 'github',
   },
@@ -90,6 +100,11 @@ const TYPE_META: Record<
     resourceLabel: 'owner/repo',
     tokenEnv: 'GITHUB_TOKEN',
     fields: [
+      {
+        key: 'base_url',
+        label: 'API base (GitHub.com or Enterprise)',
+        placeholder: 'https://api.github.com or https://github.company.com/api/v3',
+      },
       { key: 'branch', label: 'Branch (optional)', placeholder: 'main' },
       { key: 'include_issues', label: 'Include issues & PRs', type: 'checkbox' },
     ],
@@ -149,6 +164,12 @@ function intervalLabel(min: number | null): string {
   return INTERVAL_OPTIONS.find((o) => o.value === min)?.label ?? `Every ${min} min`
 }
 
+function presetsForMeta(preset: string | undefined): Set<string> {
+  if (!preset) return new Set()
+  if (preset === 'github') return new Set(['github', 'github_enterprise'])
+  return new Set([preset])
+}
+
 function availableTypes(servers: McpServer[] | undefined): ConnectorType[] {
   const connectedPresets = new Set(
     (servers ?? []).filter((s) => s.connected || s.authMode === 'token' || s.authMode === 'none').map((s) => s.preset),
@@ -157,7 +178,8 @@ function availableTypes(servers: McpServer[] | undefined): ConnectorType[] {
     .filter(([, meta]) => {
       if (!meta.mcp) return true
       if (!meta.preset) return true
-      return connectedPresets.has(meta.preset)
+      const allowed = presetsForMeta(meta.preset)
+      return [...allowed].some((p) => connectedPresets.has(p))
     })
     .map(([k]) => k as ConnectorType)
   return types.length > 0 ? types : (['github'] as ConnectorType[])
@@ -229,8 +251,9 @@ function AddConnectorForm({ onDone }: { onDone: () => void }) {
       }
       const nextConfig = { ...config }
       if (meta.mcp && meta.preset && !nextConfig.server_id) {
+        const allowed = presetsForMeta(meta.preset)
         const match = (mcpServers ?? []).find(
-          (s) => s.preset === meta.preset && !s.id.startsWith('preset:'),
+          (s) => allowed.has(s.preset) && !s.id.startsWith('preset:'),
         )
         if (match) nextConfig.server_id = match.id
       }

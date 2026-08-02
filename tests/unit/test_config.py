@@ -88,7 +88,7 @@ class TestLoadConfig:
             with open(env_path, "w") as f:
                 yaml.dump({"log_level": "DEBUG"}, f)
             cfg = load_config(base_path, env="test")
-            assert cfg.chunk_size == 100   # from base
+            assert cfg.chunk_size == 100  # from base
             assert cfg.log_level == "DEBUG"  # from env override
         finally:
             os.unlink(base_path)
@@ -100,7 +100,36 @@ def test_provider_api_key_env():
     assert provider_api_key_env("openai") == "OPENAI_API_KEY"
     assert provider_api_key_env("anthropic") == "ANTHROPIC_API_KEY"
     assert provider_api_key_env("gemini") == "GEMINI_API_KEY"
+    assert provider_api_key_env("gateway") == "GATEWAY_API_KEY"
+    assert provider_api_key_env("litellm") == "GATEWAY_API_KEY"
     assert provider_api_key_env("ollama") is None
+
+
+def test_gateway_resolve_model_accepts_custom_route(monkeypatch):
+    monkeypatch.delenv("GATEWAY_DEFAULT_MODEL", raising=False)
+    cfg = Config()
+    assert cfg.llm.normalize_provider("litellm") == "gateway"
+    assert cfg.llm.resolve_model("gateway", "acme-claude-sonnet") == "acme-claude-sonnet"
+
+
+def test_gateway_resolve_model_uses_env_default(monkeypatch):
+    monkeypatch.setenv("GATEWAY_DEFAULT_MODEL", "env-default-model")
+    cfg = Config()
+    assert cfg.llm.resolve_model("gateway", None) == "env-default-model"
+
+
+def test_gateway_resolve_model_errors_when_missing(monkeypatch):
+    monkeypatch.delenv("GATEWAY_DEFAULT_MODEL", raising=False)
+    cfg = Config()
+    cfg.llm.default_model_by_provider["gateway"] = ""
+    with pytest.raises(ValueError, match="No gateway model configured"):
+        cfg.llm.resolve_model("gateway", None)
+
+
+def test_gateway_base_url_from_env(monkeypatch):
+    monkeypatch.setenv("GATEWAY_BASE_URL", "http://litellm:4000/v1")
+    cfg = Config()
+    assert cfg.llm.gateway_base_url == "http://litellm:4000/v1"
 
 
 class TestDocOllamaRuntimeToggle:

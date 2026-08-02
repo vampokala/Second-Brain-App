@@ -2,7 +2,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 vi.mock('../api/client', () => ({
-  fetchLlmConfig: vi.fn().mockResolvedValue({ default_model_by_provider: {} }),
+  fetchLlmConfig: vi.fn().mockResolvedValue({
+    default_model_by_provider: {},
+    allowed_models_by_provider: {},
+    provider_key_configured: {},
+    gateway_base_url: 'http://localhost:4000/v1',
+  }),
 }))
 
 vi.mock('../api/chatsClient', () => ({

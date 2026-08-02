@@ -15,11 +15,19 @@ ENV_WINS: dict[str, str] = {
     "openai_api_key": "OPENAI_API_KEY",
     "anthropic_api_key": "ANTHROPIC_API_KEY",
     "gemini_api_key": "GEMINI_API_KEY",
+    "gateway_api_key": "GATEWAY_API_KEY",
     "github_token": "GITHUB_TOKEN",
     "jira_api_token": "JIRA_API_TOKEN",
     "confluence_api_token": "CONFLUENCE_API_TOKEN",
     "slack_bot_token": "SLACK_BOT_TOKEN",
     "brave_search_api_key": "BRAVE_SEARCH_API_KEY",
+    "google_oauth_client_id": "GOOGLE_OAUTH_CLIENT_ID",
+    "google_oauth_client_secret": "GOOGLE_OAUTH_CLIENT_SECRET",
+}
+
+# Non-secret settings mirrored into process env (Docker/host env still wins).
+ENV_PLAIN: dict[str, str] = {
+    "gateway_base_url": "GATEWAY_BASE_URL",
 }
 
 _SECRET_SUFFIXES = ("_api_key", "_token", "_bot_token")
@@ -52,32 +60,48 @@ def mask_secret(val: str) -> str:
     return "****" + val[-4:]
 
 
-def hydrate_env_from_value(setting_key: str, value: Any) -> bool:
+def hydrate_env_from_value(setting_key: str, value: Any, *, force: bool = False) -> bool:
     """Set ``os.environ`` from a settings value if env is not already set.
 
-    Returns True when the process env was updated.
+    Returns True when the process env was updated. ``force=True`` overwrites a
+    previously hydrated value but never a boot-time (Docker/host) override.
     """
-    env_name = ENV_WINS.get(setting_key)
+    from src.api.llm_settings_overlay import boot_env_has
+
+    env_name = ENV_WINS.get(setting_key) or ENV_PLAIN.get(setting_key)
     if not env_name:
         return False
-    if os.getenv(env_name):
+    if boot_env_has(env_name):
         return False
-    secret = extract_secret(value)
-    if not secret:
+    if os.getenv(env_name) and not force:
         return False
-    os.environ[env_name] = secret
+
+    if setting_key in ENV_WINS:
+        secret = extract_secret(value)
+        if not secret:
+            return False
+        os.environ[env_name] = secret
+        return True
+
+    text = value.strip() if isinstance(value, str) else str(value or "").strip()
+    if not text:
+        return False
+    os.environ[env_name] = text
     return True
 
 
 def hydrate_env_from_rows(rows: dict[str, Any]) -> list[str]:
-    """Hydrate all known secrets from a settings row map. Returns env names set."""
+    """Hydrate all known secrets/plain env values from a settings row map."""
+    from src.api.llm_settings_overlay import apply_rows
+
     updated: list[str] = []
     for key, value in rows.items():
-        env_name = ENV_WINS.get(key)
-        if not env_name:
+        if key not in ENV_WINS and key not in ENV_PLAIN:
             continue
         if hydrate_env_from_value(key, value):
+            env_name = ENV_WINS.get(key) or ENV_PLAIN[key]
             updated.append(env_name)
+    apply_rows(rows)
     return updated
 
 

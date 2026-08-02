@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Link2, Plug, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { mcpClient, type McpServer } from '../api/mcpClient'
 import { Badge } from '../components/ui/badge'
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input'
 import { Select } from '../components/ui/select'
 import { useToast } from '../components/toast/ToastProvider'
+import { saveConnectorToken } from '../lib/connectorTokens'
 
 const POLL_MS = 2000
 const POLL_TIMEOUT_MS = 120_000
@@ -45,18 +46,85 @@ function ServerCard({
   onChanged: () => void
 }) {
   const { toast } = useToast()
+  const isGithubPreset = server.preset === 'github' || server.preset === 'github_enterprise'
   const [busy, setBusy] = useState(false)
   const [authLink, setAuthLink] = useState<string | null>(null)
+  const [atlassianEmail, setAtlassianEmail] = useState(server.authEmail ?? '')
+  const [enterpriseMcpUrl, setEnterpriseMcpUrl] = useState(server.url || '')
+  const [tokenDraft, setTokenDraft] = useState('')
+  const [tokenHint, setTokenHint] = useState<{ masked?: string; envLocked?: boolean }>({})
 
-  const ensureRegistered = async (): Promise<string> => {
-    if (!server.id.startsWith('preset:')) return server.id
+  useEffect(() => {
+    if (server.connected || (!isGithubPreset && server.preset !== 'atlassian')) return
+    const settingKey = isGithubPreset ? 'github_token' : 'jira_api_token'
+    void (async () => {
+      try {
+        const res = await fetch('/settings')
+        if (!res.ok) return
+        const data = (await res.json()) as {
+          values: Record<string, unknown>
+          env_override_keys: string[]
+        }
+        const masked = data.values[settingKey]
+        setTokenHint({
+          masked: typeof masked === 'string' ? masked : undefined,
+          envLocked: data.env_override_keys.includes(settingKey),
+        })
+      } catch {
+        setTokenHint({})
+      }
+    })()
+  }, [server.connected, server.preset, isGithubPreset])
+
+  const ensureRegistered = async (opts?: {
+    auth_mode?: string
+    token_env?: string
+    auth_email?: string
+    url?: string
+  }): Promise<string> => {
+    const url =
+      opts?.url ||
+      (server.preset === 'github_enterprise' ? enterpriseMcpUrl.trim() : undefined) ||
+      server.url ||
+      undefined
+    if (server.preset === 'github_enterprise' && !url) {
+      throw new Error(
+        'Set the self-hosted github-mcp-server URL (or GITHUB_MCP_URL in .env).',
+      )
+    }
     const created = await mcpClient.upsertServer({
       preset: server.preset,
       name: server.name,
-      url: server.url || undefined,
-      auth_mode: server.authMode,
+      url,
+      auth_mode: opts?.auth_mode || server.authMode,
+      token_env: opts?.token_env,
+      auth_email: opts?.auth_email,
     })
     return created.id
+  }
+
+  const persistTokenIfNeeded = async (): Promise<void> => {
+    const draft = tokenDraft.trim()
+    const settingKey = isGithubPreset ? 'github_token' : 'jira_api_token'
+    const envName = isGithubPreset ? 'GITHUB_TOKEN' : 'JIRA_API_TOKEN'
+    if (draft) {
+      if (tokenHint.envLocked) {
+        throw new Error(
+          `${envName} is set in the container environment and cannot be overwritten from the UI. ` +
+            `Update .env and recreate the API container, or unset ${envName}.`,
+        )
+      }
+      await saveConnectorToken(settingKey, draft)
+      setTokenDraft('')
+      setTokenHint((prev) => ({ ...prev, masked: '****saved' }))
+      return
+    }
+    if (tokenHint.masked || tokenHint.envLocked) {
+      return
+    }
+    throw new Error(
+      `Paste your ${envName} below (saved like model provider keys), then connect.`,
+    )
   }
 
   const connect = useMutation({
@@ -94,31 +162,41 @@ function ServerCard({
     },
     onError: (e) => {
       setBusy(false)
-      toast({ title: 'Connect failed', description: (e as Error).message, tone: 'error' })
+      const msg = (e as Error).message
+      const githubHint =
+        isGithubPreset && /GITHUB_OAUTH|OAuth App|Dynamic Client/i.test(msg)
+          ? ' Prefer “Use API token” with GITHUB_TOKEN in Settings. For GHES, set GITHUB_HOST and register the OAuth App on that host.'
+          : ''
+      toast({ title: 'Connect failed', description: `${msg}${githubHint}`, tone: 'error' })
     },
   })
 
   const connectWithToken = useMutation({
     mutationFn: async () => {
       setBusy(true)
-      const tokenEnv =
-        server.preset === 'github'
-          ? 'GITHUB_TOKEN'
-          : server.preset === 'atlassian'
-            ? 'JIRA_API_TOKEN'
-            : undefined
-      const created = await mcpClient.upsertServer({
-        preset: server.preset,
-        name: server.name,
-        url: server.url || undefined,
+      await persistTokenIfNeeded()
+      const tokenEnv = isGithubPreset
+        ? 'GITHUB_TOKEN'
+        : server.preset === 'atlassian'
+          ? 'JIRA_API_TOKEN'
+          : undefined
+      const email = atlassianEmail.trim()
+      if (server.preset === 'atlassian' && !email) {
+        throw new Error(
+          'Enter your Atlassian account email for personal API token auth (Basic email:token).',
+        )
+      }
+      const createdId = await ensureRegistered({
         auth_mode: 'token',
         token_env: tokenEnv,
+        auth_email: server.preset === 'atlassian' ? email : undefined,
+        url: server.preset === 'github_enterprise' ? enterpriseMcpUrl.trim() : undefined,
       })
-      const result = await mcpClient.connectServer(created.id)
+      const result = await mcpClient.connectServer(createdId)
       if (result.authorization_url) {
         throw new Error('Expected token connect without OAuth popup.')
       }
-      const status = await mcpClient.serverStatus(created.id)
+      const status = await mcpClient.serverStatus(createdId)
       return { connected: status.connected }
     },
     onSuccess: (r) => {
@@ -128,8 +206,10 @@ function ServerCard({
         toast({ title: 'Connected with API token', tone: 'success' })
       } else {
         toast({
-          title: 'Token not found',
-          description: 'Save GITHUB_TOKEN (or the Atlassian token) in Settings first.',
+          title: 'Connection incomplete',
+          description: isGithubPreset
+            ? 'Token was saved, but the MCP probe did not report connected. Check the token scopes and try again.'
+            : 'Token was saved, but Atlassian MCP did not report connected. Check email/token and try again.',
           tone: 'error',
         })
       }
@@ -168,13 +248,72 @@ function ServerCard({
         <p className="text-xs text-muted-foreground">
           Enables: {server.connectorTypes.join(', ') || '—'}
           {server.preset === 'google_workspace'
-            ? ' — requires workspace-mcp sidecar + Google OAuth client in .env'
+            ? ' — Connect opens Google login (org Workspace account). Requires GOOGLE_OAUTH_CLIENT_ID/SECRET in .env and workspace-mcp running.'
+            : null}
+          {server.preset === 'github'
+            ? ' — paste a PAT below (saved like model keys); OAuth needs a GitHub OAuth App'
+            : null}
+          {server.preset === 'github_enterprise'
+            ? ' — run github-mcp-server with GITHUB_HOST; paste PAT below + MCP URL'
             : null}
         </p>
+        {!server.connected && server.preset === 'atlassian' ? (
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              Atlassian account email (for API token)
+            </span>
+            <Input
+              type="email"
+              value={atlassianEmail}
+              onChange={(e) => setAtlassianEmail(e.target.value)}
+              placeholder="you@acme.com"
+              disabled={busy}
+            />
+          </label>
+        ) : null}
+        {!server.connected && (isGithubPreset || server.preset === 'atlassian') ? (
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              {isGithubPreset ? 'GitHub personal access token' : 'Atlassian API token'}
+            </span>
+            <Input
+              type="password"
+              autoComplete="off"
+              value={tokenDraft}
+              onChange={(e) => setTokenDraft(e.target.value)}
+              disabled={busy || tokenHint.envLocked}
+              placeholder={
+                tokenHint.envLocked
+                  ? `Locked by ${isGithubPreset ? 'GITHUB_TOKEN' : 'JIRA_API_TOKEN'} in environment`
+                  : tokenHint.masked
+                    ? 'Saved token present. Enter a new token to replace.'
+                    : isGithubPreset
+                      ? 'ghp_… or github_pat_…'
+                      : 'Paste Atlassian API token'
+              }
+            />
+            {tokenHint.masked && !tokenHint.envLocked ? (
+              <span className="text-xs text-muted-foreground">Saved ({tokenHint.masked})</span>
+            ) : null}
+          </label>
+        ) : null}
+        {!server.connected && server.preset === 'github_enterprise' ? (
+          <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              Self-hosted github-mcp-server URL
+            </span>
+            <Input
+              value={enterpriseMcpUrl}
+              onChange={(e) => setEnterpriseMcpUrl(e.target.value)}
+              placeholder="http://localhost:8080/mcp"
+              disabled={busy}
+            />
+          </label>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           {!server.connected ? (
             <>
-              {server.preset === 'github' ? (
+              {isGithubPreset ? (
                 <>
                   <Button
                     size="sm"

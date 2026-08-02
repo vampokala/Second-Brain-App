@@ -7,7 +7,7 @@ import os
 import requests
 import streamlit as st
 from src.core.rag_orchestrator import QueryRequest, QueryResponse, RAGOrchestrator
-from src.utils.config import load_config, provider_api_key_env
+from src.utils.config import Config, load_config, provider_api_key_env
 from src.web.ingestion_service import run_ingest, save_uploaded_files
 
 API_BASE_URL = os.getenv("DOC_INGEST_API_URL", "http://127.0.0.1:8000")
@@ -197,11 +197,28 @@ def _provider_key_from_session(provider: str) -> str:
         "openai": "provider_key_openai",
         "anthropic": "provider_key_anthropic",
         "gemini": "provider_key_gemini",
+        "gateway": "provider_key_gateway",
     }
     slot = key_map.get(provider, "")
     if not slot:
         return ""
     return str(st.session_state.get(slot, "")).strip()
+
+
+def _select_model(selected_provider: str, cfg: Config) -> str:
+    model_options = cfg.llm.allowed_models_by_provider.get(selected_provider, [])
+    default_model = (cfg.llm.default_model_by_provider.get(selected_provider) or "").strip()
+    env_default = (os.getenv("GATEWAY_DEFAULT_MODEL") or "").strip()
+    if selected_provider == "gateway" and not model_options:
+        return st.text_input(
+            "Model",
+            value=default_model or env_default,
+            placeholder="Gateway model route name",
+        ).strip()
+    if not model_options:
+        return st.text_input("Model", value=default_model).strip()
+    idx = model_options.index(default_model) if default_model in model_options else 0
+    return str(st.selectbox("Model", options=model_options, index=idx))
 
 
 def _render_query_tab() -> None:
@@ -218,10 +235,7 @@ def _render_query_tab() -> None:
     providers = list(cfg.llm.allowed_models_by_provider.keys())
     default_provider = cfg.llm.default_provider if cfg.llm.default_provider in providers else providers[0]
     selected_provider = st.selectbox("Provider", options=providers, index=providers.index(default_provider))
-    model_options = cfg.llm.allowed_models_by_provider.get(selected_provider, [])
-    default_model = cfg.llm.default_model_by_provider.get(selected_provider)
-    idx = model_options.index(default_model) if default_model in model_options else 0
-    selected_model = st.selectbox("Model", options=model_options, index=idx)
+    selected_model = _select_model(selected_provider, cfg)
     remember = st.checkbox("Remember last selection", value=True)
     stream = st.checkbox("Stream response", value=False, help="Currently treated as standard response in API.")
     default_prompt = str(st.session_state.pop("demo_prompt", ""))
@@ -260,16 +274,23 @@ def _render_query_tab() -> None:
                     value=str(st.session_state.get("provider_key_gemini", "")),
                     type="password",
                 )
+                gateway_input = st.text_input(
+                    "AI Gateway key",
+                    value=str(st.session_state.get("provider_key_gateway", "")),
+                    type="password",
+                )
                 applied = st.form_submit_button("Apply provider keys")
                 if applied:
                     st.session_state["provider_key_openai"] = openai_input.strip()
                     st.session_state["provider_key_anthropic"] = anthropic_input.strip()
                     st.session_state["provider_key_gemini"] = gemini_input.strip()
+                    st.session_state["provider_key_gateway"] = gateway_input.strip()
                     st.success("Provider session keys applied.")
             if st.button("Clear provider keys"):
                 st.session_state["provider_key_openai"] = ""
                 st.session_state["provider_key_anthropic"] = ""
                 st.session_state["provider_key_gemini"] = ""
+                st.session_state["provider_key_gateway"] = ""
                 st.success("Provider session keys cleared.")
 
     if require_api_key_for_provider and not resolved_api_key:
@@ -283,8 +304,7 @@ def _render_query_tab() -> None:
     if not _provider_ready(selected_provider, selected_provider_session_key):
         env_name = provider_api_key_env(selected_provider)
         st.warning(
-            f"{env_name} is not set in environment. "
-            f"Paste a session key in sidebar to use {selected_provider}."
+            f"{env_name} is not set in environment. " f"Paste a session key in sidebar to use {selected_provider}."
         )
 
     run_disabled = (not prompt.strip()) or (require_api_key_for_provider and not resolved_api_key)
@@ -405,10 +425,7 @@ def _render_ingest_tab() -> None:
 
         if _DEMO_MODE and _DEMO_UPLOADS_ENABLED:
             sid = _get_or_create_demo_session(headers)
-            files_payload = [
-                ("files", (u.name, u.getvalue(), "application/octet-stream"))
-                for u in uploads
-            ]
+            files_payload = [("files", (u.name, u.getvalue(), "application/octet-stream")) for u in uploads]
             with st.spinner("Uploading and indexing session documents..."):
                 resp = requests.post(
                     f"{API_BASE_URL}/sessions/{sid}/documents",

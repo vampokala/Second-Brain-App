@@ -17,19 +17,23 @@ const mockLlmConfig = {
     openai: 'gpt-5.4-mini',
     anthropic: 'claude-sonnet-4-6',
     gemini: 'gemini-3.1-flash-lite',
+    gateway: '',
   },
   allowed_models_by_provider: {
     ollama: ['qwen2.5:7b', 'deepseek-r1:8b'],
     openai: ['gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4', 'gpt-5.5'],
     anthropic: ['claude-sonnet-4-6', 'claude-haiku-4-5', 'claude-opus-4-7'],
     gemini: ['gemini-3.1-flash-lite', 'gemini-3.1-pro-preview'],
+    gateway: [],
   },
   provider_key_configured: {
     ollama: true,
     openai: true,
     anthropic: true,
     gemini: true,
+    gateway: false,
   },
+  gateway_base_url: 'http://localhost:4000/v1',
   demo_mode: true,
 }
 

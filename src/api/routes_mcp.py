@@ -65,6 +65,7 @@ def _to_out(server: McpServer, *, connected: bool) -> McpServerOut:
         connected=connected,
         connector_types=connector_types,
         enabled=bool(server.enabled),
+        auth_email=server.auth_email,
     )
 
 
@@ -110,7 +111,14 @@ async def upsert_server(body: McpServerUpsertBody, request: Request) -> McpServe
         )
     url = resolve_preset_url(body.preset, str(body.url) if body.url else None)
     if not url:
-        raise HTTPException(status_code=422, detail="url is required for custom MCP servers.")
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "url is required for this MCP preset. "
+                "For GitHub Enterprise, set GITHUB_MCP_URL or provide the "
+                "self-hosted github-mcp-server URL."
+            ),
+        )
 
     name = (body.name or preset.label).strip()
     if not name:
@@ -129,6 +137,7 @@ async def upsert_server(body: McpServerUpsertBody, request: Request) -> McpServe
                 url=url,
                 auth_mode=body.auth_mode,
                 token_env=body.token_env,
+                auth_email=(body.auth_email or "").strip() or None,
                 enabled=True,
             )
             session.add(existing)
@@ -136,6 +145,7 @@ async def upsert_server(body: McpServerUpsertBody, request: Request) -> McpServe
             existing.url = url
             existing.auth_mode = body.auth_mode
             existing.token_env = body.token_env
+            existing.auth_email = (body.auth_email or "").strip() or None
             existing.enabled = True
         await session.commit()
         await session.refresh(existing)
@@ -185,9 +195,9 @@ async def connect_server(server_id: str, request: Request) -> McpConnectResponse
             raise HTTPException(
                 status_code=502,
                 detail=(
-                    "Google Workspace MCP sidecar is not reachable. "
-                    "Set GOOGLE_OAUTH_CLIENT_ID/SECRET and run: "
-                    "docker compose --profile mcp up -d workspace-mcp"
+                    "MCP sidecar is not reachable at "
+                    f"{row.url}. For Google Workspace, set GOOGLE_OAUTH_CLIENT_ID/SECRET "
+                    "in .env and run: docker compose --profile mcp up -d workspace-mcp"
                 ),
             ) from exc
         await mgr.mark_verified(str(row.id))
@@ -200,11 +210,40 @@ async def connect_server(server_id: str, request: Request) -> McpConnectResponse
                 status_code=400,
                 detail=f"Set {env_name or 'token_env'} in the environment or Settings before connecting.",
             )
+        try:
+            auth = await build_mcp_auth(row, async_session_factory, redirect_uri=_redirect_uri())
+            async with open_mcp_session(normalize_mcp_url(row.url), auth=auth) as session:
+                await session.list_tools()
+        except Exception as exc:
+            logger.warning("mcp_token_probe_failed server_id=%s error=%s", server_id, exc)
+            hint = ""
+            if row.preset == "atlassian":
+                hint = (
+                    " For personal API tokens, set auth_email (or JIRA_EMAIL) so auth uses "
+                    "Basic email:token. Service-account API keys use Bearer without email."
+                )
+            raise HTTPException(
+                status_code=502,
+                detail=f"MCP token authentication failed when probing the server: {exc}.{hint}",
+            ) from exc
         await mgr.mark_verified(str(row.id))
         return McpConnectResponse(authorization_url="", state="verified")
 
     if row.auth_mode != "oauth":
         raise HTTPException(status_code=400, detail=f"Unsupported auth_mode: {row.auth_mode!r}")
+
+    if row.preset == "google_workspace":
+        if not (os.getenv("GOOGLE_OAUTH_CLIENT_ID") or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Google Workspace Connect requires a Google Cloud OAuth client. "
+                    "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in .env "
+                    "(Web application client; redirect URIs: "
+                    "http://localhost:8001/oauth2callback and "
+                    f"{_redirect_uri()}), then recreate: docker compose up -d --build"
+                ),
+            )
 
     # Persist a normalized URL so OAuth protected-resource metadata matches
     # (GitHub rejects .../mcp/ vs .../mcp mismatches).
@@ -222,7 +261,13 @@ async def connect_server(server_id: str, request: Request) -> McpConnectResponse
     try:
         url = await mgr.start(row)
     except McpAuthError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        detail = str(exc)
+        if row.preset == "google_workspace":
+            detail = (
+                f"{detail} Ensure workspace-mcp is running (docker compose --profile mcp up -d workspace-mcp) "
+                "with MCP_ENABLE_OAUTH21=true and your Google OAuth client id/secret."
+            )
+        raise HTTPException(status_code=400, detail=detail) from exc
     state = ""
     pending = mgr._pending_by_server.get(str(row.id))
     if pending is not None:

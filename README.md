@@ -83,6 +83,9 @@ Full walkthrough: [`Docs/INSTRUCTIONS.md`](Docs/INSTRUCTIONS.md). Zero-Docker de
 | `OPENAI_API_KEY` | empty | optional key |
 | `ANTHROPIC_API_KEY` | empty | optional key |
 | `GEMINI_API_KEY` | empty | optional key |
+| `GATEWAY_BASE_URL` | `http://localhost:4000/v1` | AI Gateway / LiteLLM OpenAI-compatible base URL (also settable in Settings) |
+| `GATEWAY_API_KEY` | empty | AI Gateway API key (also settable in Settings) |
+| `GATEWAY_DEFAULT_MODEL` | empty | default model route name for the gateway provider |
 | `GROQ_API_KEY` | empty | optional key |
 | `HF_TOKEN` | empty | optional Hugging Face token for gated reranker/NLI/tokenizer models |
 | `GITHUB_TOKEN` / `JIRA_API_TOKEN` / `CONFLUENCE_API_TOKEN` / `SLACK_BOT_TOKEN` | connector credentials (env wins over UI Settings) |
@@ -105,6 +108,7 @@ Full walkthrough: [`Docs/INSTRUCTIONS.md`](Docs/INSTRUCTIONS.md). Zero-Docker de
 - **Connectors** — Test / Sync; public-repo demo hint; **Ask about synced items**.
 
 ### Settings
+- **AI Gateway** (LiteLLM / OpenAI-compatible): base URL, API key, default model — then select `gateway` in Ask.
 - Provider keys, connector tokens, **Chat persona** (role / grade / addon), rolling memory, Brave key, web search, vision ingest (masked secrets; `.env` wins).
 
 ### Help
@@ -216,7 +220,7 @@ npm install
 npm run dev
 ```
 
-Docs hub: [`Docs/README.md`](Docs/README.md). Install / day-to-day use: [`Docs/INSTRUCTIONS.md`](Docs/INSTRUCTIONS.md).
+Docs hub: [`Docs/README.md`](Docs/README.md). Install / day-to-day use: [`Docs/INSTRUCTIONS.md`](Docs/INSTRUCTIONS.md). MCP connectors (Atlassian, GitHub, Google Workspace, custom): [`Docs/MCP_CONNECTORS.md`](Docs/MCP_CONNECTORS.md).
 
 ## Project Structure
 ```text

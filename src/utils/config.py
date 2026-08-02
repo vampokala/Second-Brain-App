@@ -92,13 +92,17 @@ class GenerationSettings(BaseModel):
 
 
 class LLMSettings(BaseModel):
-    default_provider: str = Field("ollama", description="Default provider: ollama/openai/anthropic/gemini")
+    default_provider: str = Field(
+        "ollama",
+        description="Default provider: ollama/openai/anthropic/gemini/gateway",
+    )
     default_model_by_provider: dict[str, str] = Field(
         default_factory=lambda: {
             "ollama": "qwen2.5:7b",
             "openai": "gpt-5.4-mini",
             "anthropic": "claude-sonnet-4-6",
             "gemini": "gemini-3.1-flash-lite",
+            "gateway": _env_or("GATEWAY_DEFAULT_MODEL", ""),
         }
     )
     allowed_models_by_provider: dict[str, list[str]] = Field(
@@ -107,6 +111,8 @@ class LLMSettings(BaseModel):
             "openai": ["gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.4", "gpt-5.5"],
             "anthropic": ["claude-sonnet-4-6", "claude-haiku-4-5", "claude-opus-4-7"],
             "gemini": ["gemini-3.1-flash-lite", "gemini-3.1-pro-preview"],
+            # Org gateways (LiteLLM, etc.) use custom model ids; populated via Settings.
+            "gateway": [],
         }
     )
     request_timeout_seconds: int = Field(60, ge=5, le=600)
@@ -126,10 +132,14 @@ class LLMSettings(BaseModel):
         default_factory=_default_ollama_base_url,
         description="Ollama API base URL",
     )
+    gateway_base_url: str = Field(
+        default_factory=lambda: _env_or("GATEWAY_BASE_URL", "http://localhost:4000/v1"),
+        description="AI Gateway / LiteLLM OpenAI-compatible base URL",
+    )
 
     def normalize_provider(self, provider: str | None) -> str:
         p = (provider or self.default_provider).strip().lower()
-        aliases = {"claude": "anthropic"}
+        aliases = {"claude": "anthropic", "litellm": "gateway", "ai_gateway": "gateway"}
         return aliases.get(p, p)
 
     def provider_has_key(self, provider: str) -> bool:
@@ -140,6 +150,8 @@ class LLMSettings(BaseModel):
 
     def is_provider_enabled(self, provider: str) -> bool:
         p = self.normalize_provider(provider)
+        if p == "gateway":
+            return self.provider_has_key(p)
         allow = self.allowed_models_by_provider.get(p) or []
         if not allow:
             return False
@@ -147,6 +159,8 @@ class LLMSettings(BaseModel):
 
     def resolve_model(self, provider: str, requested_model: str | None) -> str:
         p = self.normalize_provider(provider)
+        if p == "gateway":
+            return self._resolve_gateway_model(requested_model)
         allowed = self.allowed_models_by_provider.get(p) or []
         if not allowed:
             raise ValueError(f"Provider {p!r} is disabled (no allowed models configured)")
@@ -158,6 +172,18 @@ class LLMSettings(BaseModel):
         if default_model and default_model in allowed:
             return default_model
         return allowed[0]
+
+    def _resolve_gateway_model(self, requested_model: str | None) -> str:
+        # Org gateways expose arbitrary model route names; do not enforce a static allowlist.
+        if requested_model and requested_model.strip():
+            return requested_model.strip()
+        env_default = (os.getenv("GATEWAY_DEFAULT_MODEL") or "").strip()
+        if env_default:
+            return env_default
+        configured = (self.default_model_by_provider.get("gateway") or "").strip()
+        if configured:
+            return configured
+        raise ValueError("No gateway model configured; set a default model in Settings or pass model=...")
 
 
 class EvaluationSettings(BaseModel):
@@ -207,6 +233,8 @@ def provider_api_key_env(provider: str) -> str | None:
         return "ANTHROPIC_API_KEY"
     if p == "gemini":
         return "GEMINI_API_KEY"
+    if p in ("gateway", "litellm", "ai_gateway"):
+        return "GATEWAY_API_KEY"
     return None
 
 
