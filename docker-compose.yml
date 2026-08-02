@@ -1,0 +1,108 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: secondbrain
+      POSTGRES_USER: secondbrain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secondbrain"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${VAULT_HOST_PATH:-/Users/vamshipokala/Documents/Second-Brain}:/vault
+      - hf_cache:/root/.cache/huggingface
+    environment:
+      VAULT_PATH: /vault
+      VAULT_HOST_PATH: ${VAULT_HOST_PATH:-/Users/vamshipokala/Documents/Second-Brain}
+      DATABASE_URL: postgresql+asyncpg://secondbrain:${POSTGRES_PASSWORD:-localdev}@postgres:5432/secondbrain
+      VECTOR_BACKEND: ${VECTOR_BACKEND:-pgvector}
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+      MAX_INGEST_WORKERS: ${MAX_INGEST_WORKERS:-2}
+      WATCHER_DEBOUNCE_MS: ${WATCHER_DEBOUNCE_MS:-5000}
+      LLM_DEFAULT_MODEL: ${LLM_DEFAULT_MODEL:-llama3.1:8b}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      HF_TOKEN: ${HF_TOKEN:-}
+      HF_HOME: /root/.cache/huggingface
+      DOC_API_KEYS: ${DOC_API_KEYS:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Browser + API must share a host Google OAuth can redirect through.
+      WORKSPACE_MCP_URL: ${WORKSPACE_MCP_URL:-http://host.docker.internal:8001/mcp}
+      MCP_OAUTH_REDIRECT_URI: ${MCP_OAUTH_REDIRECT_URI:-http://localhost:8000/mcp/oauth/callback}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      CONFLUENCE_API_TOKEN: ${CONFLUENCE_API_TOKEN:-}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      GITHUB_HOST: ${GITHUB_HOST:-}
+      GITHUB_API_URL: ${GITHUB_API_URL:-}
+      GITHUB_MCP_URL: ${GITHUB_MCP_URL:-}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      GITHUB_OAUTH_SCOPES: ${GITHUB_OAUTH_SCOPES:-repo read:org read:user user:email}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+
+  workspace-mcp:
+    # Google Workspace MCP (Gmail + Chat). Optional — enable with --profile mcp.
+    # Official image: https://github.com/taylorwilsdon/google_workspace_mcp
+    profiles: ["mcp"]
+    image: ${WORKSPACE_MCP_IMAGE:-ghcr.io/taylorwilsdon/google_workspace_mcp:latest}
+    environment:
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:8001/oauth2callback}
+      MCP_ENABLE_OAUTH21: ${MCP_ENABLE_OAUTH21:-true}
+      MCP_TRANSPORT: streamable-http
+      WORKSPACE_MCP_ENABLED_SERVICES: ${WORKSPACE_MCP_ENABLED_SERVICES:-gmail,chat}
+      WORKSPACE_MCP_HOST: "0.0.0.0"
+      WORKSPACE_MCP_PORT: "8000"
+      WORKSPACE_MCP_BASE_URI: ${WORKSPACE_MCP_BASE_URI:-http://localhost}
+      WORKSPACE_EXTERNAL_URL: ${WORKSPACE_EXTERNAL_URL:-http://localhost:8001}
+      WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS: ${WORKSPACE_MCP_ALLOWED_CLIENT_REDIRECT_URIS:-http://localhost:*/mcp/oauth/callback,http://127.0.0.1:*/mcp/oauth/callback}
+      FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY: ${FASTMCP_SERVER_AUTH_GOOGLE_JWT_SIGNING_KEY:-localdev-change-me-google-mcp-jwt}
+      OAUTHLIB_INSECURE_TRANSPORT: "1"
+    ports:
+      - "127.0.0.1:${WORKSPACE_MCP_HOST_PORT:-8001}:8000"
+    volumes:
+      - workspace_mcp_data:/data
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "127.0.0.1:11435:11434"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  ollama_models:
+  hf_cache:
+  workspace_mcp_data:

@@ -15,11 +15,11 @@ class SecondBrainSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = Field(
-        default="postgresql+asyncpg://secondbrain:localdev@localhost:5432/secondbrain",
+        default="postgresql+asyncpg://secondbrain:localdev@localhost:5433/secondbrain",
         description="Async SQLAlchemy URL (asyncpg driver)",
     )
     database_url_sync: str = Field(
-        default="postgresql://secondbrain:localdev@localhost:5432/secondbrain",
+        default="postgresql://secondbrain:localdev@localhost:5433/secondbrain",
         description="Sync SQLAlchemy URL for RAG path (psycopg2)",
     )
     vault_path: Path = Field(default=Path("/vault"))

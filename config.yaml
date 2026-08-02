@@ -33,23 +33,30 @@ llm:
   default_provider: ollama
   default_model_by_provider:
     ollama: qwen2.5:7b
-    openai: gpt-4o-mini
+    openai: gpt-5.4-mini
     anthropic: claude-sonnet-4-6
-    gemini: gemini-2.5-flash
+    gemini: gemini-3.1-flash-lite
+    # Set via Settings (or GATEWAY_DEFAULT_MODEL) for org AI Gateway / LiteLLM.
+    gateway: ""
   allowed_models_by_provider:
     ollama:
       - qwen2.5:7b
       - deepseek-r1:8b
       - qwen2.5-coder:14b
     openai:
-      - gpt-4o-mini
-      - gpt-4.1-mini
+      - gpt-5.4-mini
+      - gpt-5.4-nano
+      - gpt-5.4
+      - gpt-5.5
     anthropic:
       - claude-sonnet-4-6
       - claude-haiku-4-5
+      - claude-opus-4-7
     gemini:
-      - gemini-2.5-flash
-      - gemini-2.5-pro
+      - gemini-3.1-flash-lite
+      - gemini-3.1-pro-preview
+    # Custom model route names are added when saved in Settings → AI Gateway.
+    gateway: []
   request_timeout_seconds: 60
 
 # Phase 4: API production controls
@@ -63,7 +70,8 @@ api:
 
 # Evaluation settings
 # Inline scoring adds ~200 ms per response (NLI model warm after first call).
-# Set DOC_PROFILE=demo to use a lighter profile without inline NLI scoring.
+# Disabled by default to keep the local CPU free; truthfulness fields will be null
+# in responses. Set to true to re-enable, or set DOC_PROFILE=demo for a lighter profile.
 evaluation:
-  inline_enabled: true
+  inline_enabled: false
   nli_model: cross-encoder/nli-deberta-v3-small

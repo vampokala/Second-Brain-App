@@ -28,7 +28,7 @@ def test_run_query_in_demo_mode_uses_inprocess_orchestrator(monkeypatch):
             return SimpleNamespace(
                 query=req.query_text,
                 provider=req.provider or "openai",
-                model=req.model or "gpt-4o-mini",
+                model=req.model or "gpt-5.4-mini",
                 answer="demo answer",
                 processing_time_ms=12.3,
                 cached=False,
@@ -49,7 +49,7 @@ def test_run_query_in_demo_mode_uses_inprocess_orchestrator(monkeypatch):
         {
             "query": "what is rag?",
             "provider": "openai",
-            "model": "gpt-4o-mini",
+            "model": "gpt-5.4-mini",
             "provider_api_key": "provider-key",
             "top_k": 5,
             "include_citations": True,
@@ -57,7 +57,7 @@ def test_run_query_in_demo_mode_uses_inprocess_orchestrator(monkeypatch):
     )
 
     assert captured["provider"] == "openai"
-    assert captured["model"] == "gpt-4o-mini"
+    assert captured["model"] == "gpt-5.4-mini"
     assert captured["provider_api_key"] == "provider-key"
     assert out["answer"] == "demo answer"
     assert out["provider"] == "openai"

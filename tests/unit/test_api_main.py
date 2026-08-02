@@ -31,6 +31,9 @@ def test_llm_config_endpoint():
     assert isinstance(data["allowed_models_by_provider"]["ollama"], list)
     assert isinstance(data["provider_key_configured"], dict)
     assert "ollama" in data["provider_key_configured"]
+    assert "gateway" in data["allowed_models_by_provider"]
+    assert "gateway" in data["provider_key_configured"]
+    assert isinstance(data.get("gateway_base_url"), str)
     assert isinstance(data["demo_mode"], bool)
 
 
@@ -69,11 +72,11 @@ def test_query_requires_api_key_when_enabled():
     api_main._cfg.api.auth_enabled = True
     api_main._cfg.api.api_keys = ["test-key"]
     client = TestClient(app)
-    res = client.post("/query", json={"query": "hello", "provider": "openai", "model": "gpt-4o-mini"})
+    res = client.post("/query", json={"query": "hello", "provider": "openai", "model": "gpt-5.4-mini"})
     assert res.status_code == 401
     res2 = client.post(
         "/query",
-        json={"query": "hello", "provider": "openai", "model": "gpt-4o-mini"},
+        json={"query": "hello", "provider": "openai", "model": "gpt-5.4-mini"},
         headers={"X-API-Key": "test-key"},
     )
     assert res2.status_code in (200, 400)

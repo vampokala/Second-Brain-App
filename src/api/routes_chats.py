@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
-from sse_starlette.sse import EventSourceResponse
-
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.api.chat_prefs import brave_api_key_from_rows, load_settings_map, persona_prefs_from_rows
 from src.api.models_chats import (
     ChatCreateBody,
     ChatDetailDTO,
@@ -16,12 +17,20 @@ from src.api.models_chats import (
     ChatMessageDTO,
     ChatPatchBody,
     EditMessageBody,
+    MemoryUpdateResponse,
     MessageSearchResult,
+    SaveToWikiBody,
+    SaveToWikiResponse,
     SendMessageBody,
 )
-from src.core.chat_orchestrator import ChatOrchestrator
+from src.core.chat_orchestrator import ChatOrchestrator, ChatPersonaPrefs
 from src.core.chat_store import ChatStore, NewMessage
+from src.core.rolling_memory import roll_up_from_chat
 from src.core.title_generator import generate_title
+from src.core.wiki_analysis_writer import save_answer_to_wiki
+from src.db.session import get_async_session
+from src.utils.sb_env import load_second_brain_settings
+from sse_starlette.sse import EventSourceResponse
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +49,15 @@ def _orch(request: Request) -> ChatOrchestrator:
     if o is None:
         raise HTTPException(status_code=503, detail="Chat orchestrator unavailable.")
     return o
+
+
+def _vault_path():
+    return load_second_brain_settings().vault_path
+
+
+async def _stream_prefs(session: AsyncSession) -> tuple[ChatPersonaPrefs, str | None]:
+    rows = await load_settings_map(session)
+    return persona_prefs_from_rows(rows), brave_api_key_from_rows(rows)
 
 
 def _route_llm(request: Request):
@@ -81,6 +99,7 @@ def _to_detail(ctx: Any) -> ChatDetailDTO:
                 parent_id=m.parent_id,
                 created_at=m.created_at,
                 citations=payload,
+                retrieved=list(m.retrieved or []),
             )
         )
     c = ctx.chat
@@ -168,7 +187,12 @@ async def delete_chat(chat_id: uuid.UUID, request: Request) -> dict[str, str]:
 
 
 @router.post("/{chat_id}/messages")
-async def post_message(chat_id: uuid.UUID, body: SendMessageBody, request: Request) -> EventSourceResponse:
+async def post_message(
+    chat_id: uuid.UUID,
+    body: SendMessageBody,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+) -> EventSourceResponse:
     store = _store(request)
     orch = _orch(request)
     ch = await store.get_chat(chat_id)
@@ -179,6 +203,8 @@ async def post_message(chat_id: uuid.UUID, body: SendMessageBody, request: Reque
     model = body.model or chat_row.model
     scope = body.scope or chat_row.knowledge_scope
     system_prompt = body.system_prompt if body.system_prompt is not None else chat_row.system_prompt
+    persona, brave_key = await _stream_prefs(session)
+    grounding = body.grounding_mode if body.grounding_mode in ("corpus_only", "allow_general") else "corpus_only"
 
     async def gen():
         first_user = len(ch.messages) == 0
@@ -193,12 +219,16 @@ async def post_message(chat_id: uuid.UUID, body: SendMessageBody, request: Reque
                 provider_api_key=body.provider_api_key,
                 parent_id=body.parent_id,
                 route_llm=_route_llm(request),
+                grounding_mode=grounding,
+                include_web_search=bool(body.include_web_search),
+                persona=persona,
+                brave_api_key=brave_key,
             ):
                 yield {"event": evt["event"], "data": json.dumps(evt["data"])}
             if first_user:
                 title = await generate_title(body.message, provider, model)
                 await store.update_chat(chat_id, title=title)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("chat stream failed")
             yield {"event": "error", "data": json.dumps({"message": str(exc)})}
 
@@ -206,7 +236,12 @@ async def post_message(chat_id: uuid.UUID, body: SendMessageBody, request: Reque
 
 
 @router.post("/{chat_id}/messages/{message_id}/regenerate")
-async def regenerate(chat_id: uuid.UUID, message_id: uuid.UUID, request: Request) -> EventSourceResponse:
+async def regenerate(
+    chat_id: uuid.UUID,
+    message_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+) -> EventSourceResponse:
     store = _store(request)
     orch = _orch(request)
     ctx = await store.get_chat(chat_id)
@@ -225,6 +260,7 @@ async def regenerate(chat_id: uuid.UUID, message_id: uuid.UUID, request: Request
     await store.set_leaf(chat_id, user_id)
 
     chat_row = ctx.chat
+    persona, brave_key = await _stream_prefs(session)
 
     async def gen():
         try:
@@ -239,16 +275,24 @@ async def regenerate(chat_id: uuid.UUID, message_id: uuid.UUID, request: Request
                 route_llm=_route_llm(request),
                 append_user=False,
                 anchor_user_message_id=user_id,
+                persona=persona,
+                brave_api_key=brave_key,
             ):
                 yield {"event": evt["event"], "data": json.dumps(evt["data"])}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             yield {"event": "error", "data": json.dumps({"message": str(exc)})}
 
     return EventSourceResponse(gen())
 
 
 @router.post("/{chat_id}/messages/{message_id}/edit")
-async def edit_fork(chat_id: uuid.UUID, message_id: uuid.UUID, body: EditMessageBody, request: Request) -> EventSourceResponse:
+async def edit_fork(
+    chat_id: uuid.UUID,
+    message_id: uuid.UUID,
+    body: EditMessageBody,
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+) -> EventSourceResponse:
     store = _store(request)
     orch = _orch(request)
     m = await store.get_message(message_id)
@@ -262,6 +306,7 @@ async def edit_fork(chat_id: uuid.UUID, message_id: uuid.UUID, body: EditMessage
     if ctx is None:
         raise HTTPException(status_code=404, detail="Not found")
     chat_row = ctx.chat
+    persona, brave_key = await _stream_prefs(session)
 
     async def gen():
         try:
@@ -276,9 +321,72 @@ async def edit_fork(chat_id: uuid.UUID, message_id: uuid.UUID, body: EditMessage
                 route_llm=_route_llm(request),
                 append_user=False,
                 anchor_user_message_id=new_m.id,
+                persona=persona,
+                brave_api_key=brave_key,
             ):
                 yield {"event": evt["event"], "data": json.dumps(evt["data"])}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             yield {"event": "error", "data": json.dumps({"message": str(exc)})}
 
     return EventSourceResponse(gen())
+
+
+@router.post("/{chat_id}/messages/{message_id}/save-to-wiki", response_model=SaveToWikiResponse)
+async def save_message_to_wiki(
+    chat_id: uuid.UUID,
+    message_id: uuid.UUID,
+    body: SaveToWikiBody,
+    request: Request,
+) -> SaveToWikiResponse:
+    store = _store(request)
+    ctx = await store.get_chat(chat_id)
+    if ctx is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    m = await store.get_message(message_id)
+    if m is None or m.chat_id != chat_id or m.role != "assistant":
+        raise HTTPException(status_code=400, detail="Not an assistant message")
+
+    cites = ctx.citations_by_message.get(m.id, [])
+    sources = [c.source for c in cites if c.source]
+    content = (m.content or "").strip()
+    if body.include_citations and sources:
+        content = content + "\n\n### Sources\n" + "\n".join(f"- {s}" for s in sources)
+    title = (body.title or "").strip() or (ctx.chat.title or "Chat analysis")
+    vault = _vault_path()
+    rel = await save_answer_to_wiki(
+        vault_path=vault,
+        title=title,
+        body_markdown=content,
+        sources=sources,
+    )
+    ingested = False
+    chunk_count = 0
+    if body.reingest:
+        pipeline = getattr(request.app.state, "ingest_pipeline", None)
+        if pipeline is not None:
+            result = await pipeline.ingest_file(vault / rel)
+            ingested = result.status == "ingested"
+            chunk_count = result.chunk_count
+    return SaveToWikiResponse(path=rel, ingested=ingested, chunk_count=chunk_count)
+
+
+@router.post("/{chat_id}/memory/update", response_model=MemoryUpdateResponse)
+async def update_chat_memory(chat_id: uuid.UUID, request: Request) -> MemoryUpdateResponse:
+    store = _store(request)
+    ctx = await store.get_chat(chat_id)
+    if ctx is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    vault = _vault_path()
+    cfg = getattr(request.app.state, "config", None)
+    from src.utils.config import load_config
+
+    llm_cfg = cfg.llm if cfg is not None else load_config("config.yaml").llm
+    text = await roll_up_from_chat(
+        chat_id,
+        store,
+        provider=ctx.chat.provider,
+        model=ctx.chat.model,
+        vault_path=vault,
+        llm_cfg=llm_cfg,
+    )
+    return MemoryUpdateResponse(content=text)

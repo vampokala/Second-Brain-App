@@ -1,3 +1,13 @@
+# OS / editor junk
+.DS_Store
+*.code-workspace
+
+# Coverage / test artifacts
+.coverage
+coverage/
+frontend/coverage/
+*.backup
+
 # Python
 __pycache__/
 *.py[cod]
@@ -12,8 +22,14 @@ venv/
 
 # Local tools / IDE
 .env
-.cursor/
+.cursor/plans/
+.cursor/.DS_Store
 .claude/
+# Quality toolkit (committed for team + agents)
+!.cursor/rules/
+!.cursor/skills/
+!.cursor/hooks/
+!.cursor/hooks.json
 
 # Generated indexes (rebuild with ingest)
 data/embeddings/

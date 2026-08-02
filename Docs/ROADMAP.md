@@ -6,6 +6,7 @@
 - Phase 2: Completed
 - Phase 3: Completed
 - Phase 4: Completed
+- Phase 5: Completed (monitoring & observability — see `Docs/Phase5-Monitoring-Observability.md`)
 
 ## Phase details
 
@@ -36,8 +37,15 @@
 - Multi-provider LLM routing (Ollama/OpenAI/Claude/Gemini)
 - Cache key hardening and weighted fusion alignment
 
+### Phase 5 (completed)
+
+- In-app observability dashboard (`GET /observability/dashboard`)
+- Metrics / tracing hooks for retrieval and generation
+- Ops-oriented health and latency visibility for demo and local Docker runs
+
 ## Next milestones
 
-- Production deployment hardening and observability dashboards
-- Optional managed auth backend and tenant isolation
+- Production deployment hardening and packaged Grafana/alerts
+- Optional managed auth backend (SSO/OIDC) and tenant isolation
 - Evaluation harness expansion for provider comparison and regression tracking
+- Enterprise trust narrative (audit log of ingest/sync/query)

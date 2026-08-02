@@ -6,8 +6,6 @@ import asyncio
 from pathlib import Path
 
 import frontmatter
-import pytest
-
 from src.core import wiki_stub_writer as ws
 
 
@@ -46,6 +44,24 @@ def test_stub_preserves_when_auto_removed(tmp_path: Path) -> None:
     asyncio.run(ws.write_stub(raw, vault, ""))
     data = frontmatter.load(stub)
     assert data.metadata.get("auto") is False
+
+
+def test_write_stub_for_pdf_uses_filename_title(tmp_path: Path) -> None:
+    vault = tmp_path
+    raw = vault / "raw" / "uploads" / "WEX fee disclosure.pdf"
+    raw.parent.mkdir(parents=True)
+    raw.write_bytes(b"%PDF-1.4 fake")
+
+    async def _run() -> Path:
+        return await ws.write_stub(raw, vault, summary="Ingested source with 4 searchable chunk(s).")
+
+    stub = asyncio.run(_run())
+    assert stub == vault / "wiki" / "sources" / "uploads" / "WEX fee disclosure.md"
+    data = frontmatter.load(stub)
+    assert data.metadata.get("auto") is True
+    assert data.metadata.get("title") == "WEX fee disclosure"
+    assert data.metadata.get("sources") == ["raw/uploads/WEX fee disclosure.pdf"]
+    assert "4 searchable chunk" in (data.content or "")
 
 
 def test_concurrent_writes_same_section(tmp_path: Path) -> None:

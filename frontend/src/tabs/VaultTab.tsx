@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tree } from 'react-arborist'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { MessageSquare } from 'lucide-react'
 
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import { parseVaultPathFromHash } from '../lib/vaultDeepLink'
 
 type FileNode = {
@@ -25,11 +28,18 @@ function toArborist(nodes: FileNode[]): ArborNode[] {
   }))
 }
 
-export function VaultTab() {
+type Props = {
+  onAskAbout?: (prompt: string) => void
+}
+
+export function VaultTab({ onAskAbout }: Props) {
   const [tree, setTree] = useState<FileTree | null>(null)
   const [filter, setFilter] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
-  const [content, setContent] = useState<{ body: string; frontmatter: Record<string, unknown> | null } | null>(null)
+  const [content, setContent] = useState<{
+    body: string
+    frontmatter: Record<string, unknown> | null
+  } | null>(null)
   const [fmOpen, setFmOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -74,23 +84,38 @@ export function VaultTab() {
 
   const arborData = useMemo(() => toArborist(tree?.nodes || []), [tree])
 
+  const treeBoxRef = useRef<HTMLDivElement | null>(null)
+  const [treeSize, setTreeSize] = useState({ width: 320, height: 320 })
+  useEffect(() => {
+    const el = treeBoxRef.current
+    if (!el) return
+    const update = () => setTreeSize({ width: el.clientWidth, height: el.clientHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <div className="app-card grid min-h-[28rem] grid-cols-1 gap-4 p-5 md:grid-cols-12">
-      <div className="md:col-span-4">
+    <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 rounded-xl border border-border bg-card p-5 md:grid-cols-12">
+      <div className="flex min-h-0 flex-col md:col-span-4">
         <h2 className="mb-3 text-lg font-bold">Vault</h2>
-        <input
-          className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        <Input
+          className="mb-2"
           placeholder="Filter paths…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {error ? <div className="text-sm text-red-600">{error}</div> : null}
-        <div className="h-80 overflow-hidden rounded-lg border border-slate-200">
+        {error ? <div className="mb-2 text-sm text-destructive">{error}</div> : null}
+        <div
+          ref={treeBoxRef}
+          className="min-h-[20rem] flex-1 overflow-hidden rounded-lg border border-border"
+        >
           {arborData.length ? (
             <Tree
               data={arborData}
-              width={340}
-              height={320}
+              width={treeSize.width}
+              height={treeSize.height}
               indent={16}
               onSelect={(nodes) => {
                 const n = nodes[0]
@@ -98,32 +123,64 @@ export function VaultTab() {
               }}
             >
               {({ node, style, dragHandle }) => (
-                <div style={style} ref={dragHandle} className="cursor-pointer text-sm">
+                <div
+                  style={style}
+                  ref={dragHandle}
+                  title={node.data.name}
+                  className="flex cursor-pointer items-center overflow-hidden text-ellipsis whitespace-nowrap text-sm"
+                >
                   {node.data.name}
                 </div>
               )}
             </Tree>
           ) : (
-            <div className="p-4 text-sm text-slate-500">No files (configure DATABASE_URL + vault).</div>
+            <div className="space-y-2 p-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">No files yet</p>
+              <p>Add documents from Knowledge → Add, or sync a connector.</p>
+            </div>
           )}
         </div>
       </div>
-      <div className="md:col-span-8">
-        <div className="mb-2 text-sm font-medium text-slate-600">{selected || 'Select a file'}</div>
+      <div className="flex min-h-0 flex-col md:col-span-8">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            {selected || 'Select a file'}
+          </div>
+          {selected && onAskAbout ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                onAskAbout(
+                  `Tell me about the document at ${selected}. Summarize key points and cite sources.`,
+                )
+              }
+            >
+              <MessageSquare className="h-4 w-4" />
+              Ask about this file
+            </Button>
+          ) : null}
+        </div>
         {content?.frontmatter ? (
           <div className="mb-2">
-            <button type="button" className="text-xs font-semibold text-blue-600" onClick={() => setFmOpen(!fmOpen)}>
+            <button
+              type="button"
+              className="text-xs font-semibold text-primary"
+              onClick={() => setFmOpen(!fmOpen)}
+            >
               {fmOpen ? 'Hide' : 'Show'} frontmatter
             </button>
             {fmOpen ? (
-              <pre className="mt-1 max-h-40 overflow-auto rounded bg-slate-900 p-2 text-xs text-slate-100">
+              <pre className="mt-1 max-h-40 overflow-auto rounded bg-secondary p-2 text-xs text-foreground">
                 {JSON.stringify(content.frontmatter, null, 2)}
               </pre>
             ) : null}
           </div>
         ) : null}
-        <div className="rounded-lg border border-slate-100 bg-white p-4 text-sm">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content?.body || '_No file selected_'}</ReactMarkdown>
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background p-4 text-sm">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {content?.body || '_Select a file to preview_'}
+          </ReactMarkdown>
         </div>
       </div>
     </div>

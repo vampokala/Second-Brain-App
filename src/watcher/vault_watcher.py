@@ -5,10 +5,13 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
+
+from src.core.ingest_paths import should_skip_path
+from src.core.supported_formats import is_supported
 
 if TYPE_CHECKING:
     from src.core.ingest_pipeline import IngestPipeline
@@ -21,7 +24,7 @@ class _Handler(FileSystemEventHandler):
         self,
         vault: Path,
         loop: asyncio.AbstractEventLoop,
-        pipeline: "IngestPipeline",
+        pipeline: IngestPipeline,
         schedule_fn,
     ) -> None:
         super().__init__()
@@ -67,7 +70,7 @@ class _Handler(FileSystemEventHandler):
         async def _go() -> None:
             try:
                 await self._pipeline.remove_path(rel)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.exception("watcher remove failed: %s", exc)
 
         def _fire() -> None:
@@ -88,7 +91,7 @@ class _Handler(FileSystemEventHandler):
                 await self._pipeline.remove_path(rel_old)
                 if dest.is_file():
                     await self._pipeline.ingest_file(dest.resolve())
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.exception("watcher move failed: %s", exc)
 
         def _fire() -> None:
@@ -101,7 +104,7 @@ class VaultWatcher:
     def __init__(
         self,
         vault_path: Path,
-        pipeline: "IngestPipeline",
+        pipeline: IngestPipeline,
         debounce_ms: int,
         loop: asyncio.AbstractEventLoop,
     ) -> None:
@@ -109,7 +112,7 @@ class VaultWatcher:
         self._pipeline = pipeline
         self._debounce_s = debounce_ms / 1000.0
         self._loop = loop
-        self._observer: Optional[Observer] = None
+        self._observer: Observer | None = None
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._stopped = asyncio.Event()
 
@@ -128,13 +131,15 @@ class VaultWatcher:
                 p = path.resolve()
                 if not p.is_file():
                     return
-                parts = p.relative_to(self._vault).parts
-                if ".git" in parts or ".obsidian" in parts:
+                if should_skip_path(p, self._vault):
+                    return
+                vision = self._pipeline.is_vision_enabled()
+                if not is_supported(p.suffix, vision_enabled=vision):
                     return
                 await self._pipeline.ingest_file(p)
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.exception("watcher ingest failed: %s", exc)
             finally:
                 self._tasks.pop(key, None)

@@ -1,0 +1,12 @@
+# Quality gate config. Read by .cursor/hooks/gate-git-commit.sh and scripts/quality-soft.sh
+#
+# soft_launch: true  -> Cursor hooks WARN on failures (do not block commit/push)
+# soft_launch: false -> hard launch (block on failures)
+soft_launch: true
+
+coverage_threshold: 80
+branch_coverage_threshold: 70
+per_file_floor: 60
+cognitive_complexity_max: 15
+function_length_max: 60
+parameter_count_max: 5

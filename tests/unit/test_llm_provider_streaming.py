@@ -32,6 +32,29 @@ def test_openai_stream_parses_sse(monkeypatch):
     assert "".join(p.stream("q", "gpt")) == "hello world"
 
 
+def test_gateway_provider_reads_env_base_url_and_key(monkeypatch):
+    os.environ["GATEWAY_API_KEY"] = "gw-key"
+    monkeypatch.setenv("GATEWAY_BASE_URL", "http://litellm.local/v1")
+    captured = {}
+
+    def _post(url, **kwargs):
+        captured["url"] = url
+        captured["headers"] = kwargs.get("headers")
+        return _FakeResp(['data: {"choices":[{"delta":{"content":"ok"}}]}', "data: [DONE]"])
+
+    monkeypatch.setattr("requests.post", _post)
+    p = OpenAIProvider(
+        "http://localhost:4000/v1",
+        10,
+        api_key_env="GATEWAY_API_KEY",
+        base_url_env="GATEWAY_BASE_URL",
+        provider_label="gateway",
+    )
+    assert "".join(p.stream("q", "org-model")) == "ok"
+    assert captured["url"] == "http://litellm.local/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer gw-key"
+
+
 def test_anthropic_stream_parses_sse(monkeypatch):
     os.environ["ANTHROPIC_API_KEY"] = "k"
     lines = [

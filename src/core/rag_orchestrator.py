@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any
 
 from src.core.bm25_index import BM25Index
 from src.core.bm25_search import BM25Search
@@ -42,19 +43,20 @@ class QueryRequest:
     use_llm: bool = True
     use_rerank: bool = True
     stream: bool = False
-    provider: Optional[str] = None
-    model: Optional[str] = None
-    provider_api_key: Optional[str] = None
-    reranker_model: Optional[str] = None
+    provider: str | None = None
+    model: str | None = None
+    provider_api_key: str | None = None
+    reranker_model: str | None = None
     include_citations: bool = True
-    session_bm25_index_path: Optional[str] = None
-    session_collection_name: Optional[str] = None
-    session_chroma_path: Optional[str] = None
+    session_bm25_index_path: str | None = None
+    session_collection_name: str | None = None
+    session_chroma_path: str | None = None
     knowledge_scope: str = "global"
     """When set, retrieval uses this text; generation still uses ``query_text``."""
 
-    retrieval_query: Optional[str] = None
-    prefetched_retrieval: Optional[tuple] = None
+    retrieval_query: str | None = None
+    prefetched_retrieval: tuple | None = None
+    skip_retrieval: bool = False
 
 
 @dataclass
@@ -63,14 +65,14 @@ class QueryResponse:
     provider: str
     model: str
     answer: str = ""
-    retrieved: List[RetrievalResult] = field(default_factory=list)
-    citations: List[Dict[str, Any]] = field(default_factory=list)
+    retrieved: list[RetrievalResult] = field(default_factory=list)
+    citations: list[dict[str, Any]] = field(default_factory=list)
     processing_time_ms: float = 0.0
     cached: bool = False
-    validation_issues: List[str] = field(default_factory=list)
-    truthfulness: Optional[TruthfulnessResult] = None
+    validation_issues: list[str] = field(default_factory=list)
+    truthfulness: TruthfulnessResult | None = None
     # Per-step latencies (retrieval, reranking, generation, etc.)
-    step_latencies: Dict[str, float] = field(default_factory=dict)
+    step_latencies: dict[str, float] = field(default_factory=dict)
 
 
 class RAGOrchestrator:
@@ -86,21 +88,23 @@ class RAGOrchestrator:
         self.citation_tracker = CitationTracker()
         self.citation_verifier = CitationVerifier()
         self.cache = ResponseCache(ttl_seconds=int(cfg.generation.cache_ttl))
-        self._truthfulness_scorer: Optional[TruthfulnessScorer] = None
+        self._truthfulness_scorer: TruthfulnessScorer | None = None
         self.observer = get_observer()
 
-    def _get_truthfulness_scorer(self) -> Optional[TruthfulnessScorer]:
+    def _get_truthfulness_scorer(self) -> TruthfulnessScorer | None:
         if not self.cfg.evaluation.inline_enabled:
             return None
         if self._truthfulness_scorer is None:
             self._truthfulness_scorer = TruthfulnessScorer()
         return self._truthfulness_scorer
 
-    def _load_components(self, req: QueryRequest) -> tuple[
+    def _load_components(
+        self, req: QueryRequest
+    ) -> tuple[
         BM25Index,
         Any,
         QueryProcessor,
-        Optional[tuple[BM25Index, VectorDatabase]],
+        tuple[BM25Index, VectorDatabase] | None,
         str,
     ]:
         qp = QueryProcessor()
@@ -108,15 +112,11 @@ class RAGOrchestrator:
         if requested_scope == "vault":
             requested_scope = "global"
         sb = load_second_brain_settings()
-        use_second_brain_pg = bool(os.getenv("DATABASE_URL", "").strip()) and (
-            sb.vector_backend.lower() == "pgvector"
-        )
-        session_pair: Optional[tuple[BM25Index, VectorDatabase]] = None
+        use_second_brain_pg = bool(os.getenv("DATABASE_URL", "").strip()) and (sb.vector_backend.lower() == "pgvector")
+        session_pair: tuple[BM25Index, VectorDatabase] | None = None
         effective_scope = requested_scope
         if requested_scope in {"session", "both"}:
-            has_paths = bool(
-                req.session_bm25_index_path and req.session_collection_name and req.session_chroma_path
-            )
+            has_paths = bool(req.session_bm25_index_path and req.session_collection_name and req.session_chroma_path)
             if has_paths and os.path.exists(str(req.session_bm25_index_path)):
                 try:
                     s_index = BM25Index.load(str(req.session_bm25_index_path))
@@ -170,7 +170,7 @@ class RAGOrchestrator:
         top_k: int,
         *,
         collection_name: str = COLLECTION_NAME,
-    ) -> List[RetrievalResult]:
+    ) -> list[RetrievalResult]:
         processed = qp.process_query(query_text)
         bm25_query = " ".join(processed.all_terms)
         hybrid = HybridRetriever(BM25Search(index), VectorSearch(db, collection_name))
@@ -182,8 +182,8 @@ class RAGOrchestrator:
         )
 
     @staticmethod
-    def _dedup_results(items: List[RetrievalResult], top_k: int) -> List[RetrievalResult]:
-        out: List[RetrievalResult] = []
+    def _dedup_results(items: list[RetrievalResult], top_k: int) -> list[RetrievalResult]:
+        out: list[RetrievalResult] = []
         seen: set[str] = set()
         for item in items:
             if item.id in seen:
@@ -213,8 +213,12 @@ class RAGOrchestrator:
         self,
         req: QueryRequest,
         trace: Any,
-        step_latencies: Dict[str, float],
-    ) -> tuple[Union[List[RetrievalResult], List[RankedResult]], List[RetrievalResult]]:
+        step_latencies: dict[str, float],
+    ) -> tuple[list[RetrievalResult] | list[RankedResult], list[RetrievalResult]]:
+        if req.skip_retrieval:
+            step_latencies.setdefault("retrieval", 0.0)
+            step_latencies.setdefault("reranking", 0.0)
+            return [], []
         if req.prefetched_retrieval is not None:
             step_latencies.setdefault("retrieval", 0.0)
             step_latencies.setdefault("reranking", 0.0)
@@ -252,9 +256,9 @@ class RAGOrchestrator:
             step_latencies["retrieval"] = (time.perf_counter() - t_retrieval) * 1000.0
             s["chunks_retrieved"] = len(fused)
 
-        ranked: List[RankedResult] | None = None
-        docs_for_gen: Union[List[RetrievalResult], List[RankedResult]]
-        display_items: List[RetrievalResult]
+        ranked: list[RankedResult] | None = None
+        docs_for_gen: list[RetrievalResult] | list[RankedResult]
+        display_items: list[RetrievalResult]
 
         if req.use_rerank:
             with self.observer.trace_step(trace, "reranking", {"input_chunks": len(fused)}) as s:
@@ -292,7 +296,7 @@ class RAGOrchestrator:
         reason: str,
         *,
         cached: bool = False,
-        exc: Optional[BaseException] = None,
+        exc: BaseException | None = None,
     ) -> None:
         preview = req.query_text[:120] + ("…" if len(req.query_text) > 120 else "")
         extra = f" exc_type={type(exc).__name__}" if exc else ""
@@ -308,10 +312,10 @@ class RAGOrchestrator:
         self,
         req: QueryRequest,
         response_text: str,
-        citations: List[Dict[str, Any]],
-        docs_for_gen: Union[List[RetrievalResult], List[RankedResult]],
+        citations: list[dict[str, Any]],
+        docs_for_gen: list[RetrievalResult] | list[RankedResult],
         optimized_context: Any = None,
-    ) -> Optional[TruthfulnessResult]:
+    ) -> TruthfulnessResult | None:
         scorer = self._get_truthfulness_scorer()
         if scorer is None:
             if response_text.strip():
@@ -338,7 +342,7 @@ class RAGOrchestrator:
     ) -> QueryResponse:
         truthfulness = cached.truthfulness
         if truthfulness is None and req.use_llm and cached.response_text.strip():
-            docs_fallback: List[RetrievalResult] = []
+            docs_fallback: list[RetrievalResult] = []
             truthfulness = self._score_truthfulness(
                 req,
                 cached.response_text,
@@ -365,31 +369,28 @@ class RAGOrchestrator:
         selection: Any,
         key: str,
         gen_result: GenerationResult,
-        docs_for_gen: Union[List[RetrievalResult], List[RankedResult]],
-        display_items: List[RetrievalResult],
+        docs_for_gen: list[RetrievalResult] | list[RankedResult],
+        display_items: list[RetrievalResult],
         generator: RAGGenerator,
         trace: Any,
-        step_latencies: Dict[str, float],
+        step_latencies: dict[str, float],
         t0: float,
-    ) -> tuple[ValidationResult, Optional[TruthfulnessResult]]:
+    ) -> tuple[ValidationResult, TruthfulnessResult | None]:
         """Citation map+verify, validate, truthfulness, cache write — shared by run() and streaming finalize."""
         with self.observer.trace_step(trace, "citation_verification") as s:
             t_cite = time.perf_counter()
             ctx_docs = gen_result.optimized_context.documents if gen_result.optimized_context else []
             tracked = self.citation_tracker.map_citations(gen_result.response_text, ctx_docs)
-            gen_result.citations = self.citation_verifier.verify(
-                gen_result.response_text, tracked, ctx_docs
-            )
+            gen_result.citations = self.citation_verifier.verify(gen_result.response_text, tracked, ctx_docs)
             step_latencies["citation_verification"] = (time.perf_counter() - t_cite) * 1000.0
             s["citations_count"] = len(gen_result.citations)
 
         val = generator.validate_response(
             gen_result.response_text,
-            gen_result.optimized_context
-            or self.context_optimizer.optimize_context(req.query_text, docs_for_gen),
+            gen_result.optimized_context or self.context_optimizer.optimize_context(req.query_text, docs_for_gen),
         )
 
-        truthfulness: Optional[TruthfulnessResult] = None
+        truthfulness: TruthfulnessResult | None = None
         with self.observer.trace_step(trace, "truthfulness_scoring") as s:
             t_truth = time.perf_counter()
             truthfulness = self._score_truthfulness(
@@ -410,7 +411,7 @@ class RAGOrchestrator:
 
     def run(self, req: QueryRequest) -> QueryResponse:
         t0 = time.perf_counter()
-        step_latencies: Dict[str, float] = {}
+        step_latencies: dict[str, float] = {}
 
         selection = self.provider_router.resolve_selection(
             req.provider,
@@ -452,7 +453,7 @@ class RAGOrchestrator:
             ) as s:
                 t_gen = time.perf_counter()
                 if req.stream:
-                    buf: List[str] = []
+                    buf: list[str] = []
                     for piece in generator.generate_stream(
                         req.query_text,
                         docs_for_gen,
@@ -518,7 +519,7 @@ class RAGOrchestrator:
     def stream(self, req: QueryRequest) -> Iterator[str]:
         """Yields raw LLM tokens after retrieval. Does not run citations or truthfulness (use StreamingQuerySession)."""
         with self.observer.trace_request("rag_query", query=req.query_text) as trace:
-            step_latencies: Dict[str, float] = {}
+            step_latencies: dict[str, float] = {}
             docs_for_gen, _ = self._retrieve_docs_for_query(req, trace, step_latencies)
             if not req.use_llm:
                 return
@@ -554,8 +555,8 @@ class StreamingQuerySession:
         self._o = orchestrator
         self._req = req
         self._t0 = time.perf_counter()
-        self._step_latencies: Dict[str, float] = {}
-        self._buf: List[str] = []
+        self._step_latencies: dict[str, float] = {}
+        self._buf: list[str] = []
         self._selection = orchestrator.provider_router.resolve_selection(
             req.provider,
             req.model or os.environ.get("OLLAMA_QUERY_MODEL"),
@@ -565,8 +566,8 @@ class StreamingQuerySession:
         self._cached = orchestrator.cache.get(self._key) if req.use_llm else None
         self._trace_cm: Any = None
         self._trace: Any = None
-        self._docs_for_gen: Union[List[RetrievalResult], List[RankedResult], None] = None
-        self._display_items: Optional[List[RetrievalResult]] = None
+        self._docs_for_gen: list[RetrievalResult] | list[RankedResult] | None = None
+        self._display_items: list[RetrievalResult] | None = None
 
     def __enter__(self) -> StreamingQuerySession:
         self._trace_cm = self._o.observer.trace_request("rag_query", query=self._req.query_text)
@@ -636,9 +637,7 @@ class StreamingQuerySession:
                 step_latencies=self._step_latencies,
             )
         if self._cached is not None:
-            return self._o._response_from_cache(
-                self._req, self._selection, self._cached, self._cached.latency_ms
-            )
+            return self._o._response_from_cache(self._req, self._selection, self._cached, self._cached.latency_ms)
         assert self._docs_for_gen is not None and self._display_items is not None
         full = self._o.response_processor.format_response("".join(self._buf))
         opt = self._o.context_optimizer.optimize_context(self._req.query_text, self._docs_for_gen)

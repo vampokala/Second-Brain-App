@@ -8,11 +8,19 @@ from pathlib import Path
 from typing import Any
 
 import frontmatter
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_, select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.api.models_vault import FileContent, FileNode, FileTree, VaultStats
+from src.api.models_vault import (
+    FileContent,
+    FileNode,
+    FileTree,
+    VaultClearBody,
+    VaultClearResponse,
+    VaultClearTargets,
+    VaultStats,
+)
+from src.core.supported_formats import SUPPORTED_EXTENSIONS
 from src.db.models import DocumentChunk, IngestEvent, VaultFile
 from src.db.session import get_async_session
 from src.utils.sb_env import SecondBrainSettings, load_second_brain_settings
@@ -21,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/vault", tags=["vault"])
 
-_SUPPORTED = {".pdf", ".docx", ".txt", ".md", ".html"}
+_SUPPORTED = set(SUPPORTED_EXTENSIONS)
 
 
 def _require_settings() -> SecondBrainSettings:
@@ -100,7 +108,9 @@ def _build_tree(paths: list[str], prefix: str, max_depth: int) -> list[FileNode]
     return emit("", trie)
 
 
-async def _refresh_vault_rows(session: AsyncSession, vault: Path, base_pref: str, filter_q: str | None, limit: int) -> None:
+async def _refresh_vault_rows(
+    session: AsyncSession, vault: Path, base_pref: str, filter_q: str | None, limit: int
+) -> None:
     root = vault / base_pref if base_pref else vault
     if not root.is_dir():
         return
@@ -162,6 +172,20 @@ async def list_files(
     res = await session.execute(q)
     paths = [row[0] for row in res.all()]
 
+    # Keep cache and filesystem in sync: prune stale rows for deleted files.
+    # This avoids showing paths that no longer exist under /vault/raw or /vault/wiki.
+    if paths and vault.is_dir():
+        stale: list[str] = []
+        for p in paths:
+            abs_p = _resolve_safe(vault, p)
+            if not abs_p.is_file():
+                stale.append(p)
+        if stale:
+            await session.execute(delete(VaultFile).where(VaultFile.path.in_(stale)))
+            await session.commit()
+            res = await session.execute(q)
+            paths = [row[0] for row in res.all()]
+
     if (refresh or not paths) and vault.is_dir():
         await _refresh_vault_rows(session, vault, pref_raw, filter_q, limit)
         await session.commit()
@@ -217,9 +241,49 @@ async def vault_stats(session: AsyncSession = Depends(get_async_session)) -> Vau
     )
     last = last_row.scalar_one_or_none()
     last_s = last.isoformat() if last else None
+    host = os.getenv("VAULT_HOST_PATH", "").strip() or None
     return VaultStats(
         file_count=file_count,
         chunk_count=chunk_count,
         last_ingest_at=last_s,
         embed_model=settings.embed_model,
+        vault_path=str(settings.vault_path.resolve()),
+        vault_host_path=host,
     )
+
+
+@router.post("/clear", response_model=VaultClearResponse)
+async def clear_vault(request: Request, body: VaultClearBody) -> VaultClearResponse:
+    """Clear selected vault data after typed confirmation."""
+    from src.api.vault_clear import VaultClearValidationError, validate_vault_clear_body
+
+    try:
+        validate_vault_clear_body(body)
+    except VaultClearValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    pipeline = getattr(request.app.state, "ingest_pipeline", None)
+    if pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Vault clear requires ingest pipeline (DATABASE_URL + pgvector).",
+        )
+
+    cleared = VaultClearTargets()
+    parts: list[str] = []
+    if body.clear_vault:
+        await pipeline.clear_vault_index_and_files()
+        cleared.vault = True
+        parts.append("vault")
+    if body.clear_memory:
+        await pipeline.clear_memory()
+        cleared.memory = True
+        parts.append("memory")
+    if body.clear_chats:
+        await pipeline.clear_chats()
+        cleared.chats = True
+        parts.append("chats")
+
+    detail = "Cleared: " + ", ".join(parts)
+    logger.info("vault_clear targets=%s", parts)
+    return VaultClearResponse(cleared=cleared, detail=detail)

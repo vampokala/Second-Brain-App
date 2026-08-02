@@ -1,0 +1,99 @@
+---
+description: JVM (Java/Kotlin) quality standards (immutability, Optional, JUnit 5 + AssertJ)
+globs: **/*.{java,kt,kts}
+alwaysApply: false
+---
+
+# JVM Quality
+
+## Immutability
+
+- Default to `final` (Java) / `val` (Kotlin). Mutability is opt-in with justification.
+- Prefer `record` (Java 16+) / `data class` (Kotlin) for data carriers.
+- Collections returned from APIs must be immutable: `List.copyOf(...)` / `Collections.unmodifiableList(...)` / `toList()` in Kotlin.
+- No static mutable state. Singletons via DI container only.
+
+## Null Handling
+
+- Java: return `Optional<T>` from APIs that may return absent values. Never `null` from public methods.
+- Kotlin: use the type system (`T?`) — never `!!` outside tests, never `lateinit` unless the framework requires it.
+- Annotate non-null parameters: `@NonNull` (Jakarta) or `@NotNull` (JetBrains). Configure null-safety at the package level via `package-info.java`.
+
+## Error Handling
+
+```java
+// BAD
+try {
+    return repo.find(id);
+} catch (Exception e) {
+    return null;
+}
+
+// GOOD
+try {
+    return repo.find(id);
+} catch (DataAccessException cause) {
+    log.error("order_lookup_failed orderId={}", id, cause);
+    throw new OrderLookupException(id, cause);
+}
+```
+
+- Never `catch (Exception e)` without rethrowing or wrapping. Logging alone is not handling.
+- Custom exceptions extend a single domain base (`AppException` / `DomainException`).
+- Always preserve the cause (`new XxxException(msg, cause)`).
+- Use `try-with-resources` for all `AutoCloseable`. No manual `finally { close() }`.
+
+## Required static analysis
+
+- **Java**: PMD with the `CognitiveComplexity` rule (PMD >= 6.18). SpotBugs for null/concurrency bugs. Checkstyle for formatting.
+- **Kotlin**: detekt (ships SonarSource's cognitive-complexity rule by default). ktlint for formatting.
+
+Wire into Gradle:
+
+```kotlin
+plugins {
+    id("io.gitlab.arturbosch.detekt") version "1.23.6"
+    id("pmd")
+    id("com.github.spotbugs") version "6.0.18"
+    id("checkstyle")
+}
+
+pmd {
+    ruleSets = listOf()
+    ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")  // must include CognitiveComplexity
+}
+```
+
+These run on every PR. SonarSource's cognitive-complexity rule is the org standard whether SonarQube is installed or not.
+
+## Tests (JUnit 5 + AssertJ / Kotlin: + MockK)
+
+- File: `<Class>Test.java` / `<Class>Test.kt`. Methods: `methodName_givenCondition_expectedBehavior`.
+- Use `@DisplayName` for behavior-oriented test names.
+- AssertJ over Hamcrest over plain assertions. Fluent assertions read better and produce better failure messages.
+- `@ParameterizedTest` for boundary tables.
+- Property-based: `jqwik`.
+
+```java
+@Test
+@DisplayName("refund fails when order is already refunded")
+void refund_givenAlreadyRefundedOrder_throwsConflict() {
+    var order = OrderFactory.refunded();
+    assertThatThrownBy(() -> service.refund(order.id()))
+        .isInstanceOf(OrderAlreadyRefundedException.class)
+        .hasMessageContaining(order.id().toString());
+}
+```
+
+## Concurrency
+
+- Prefer `java.util.concurrent` (Executors, CompletableFuture, virtual threads) over raw `Thread`.
+- All shared mutable state must be documented and protected (synchronized, atomic, immutable snapshot).
+- No `Thread.sleep` in production code; use scheduled executors.
+
+## Anti-Patterns
+
+- No `instanceof` chains; use polymorphism or pattern matching (Java 21+).
+- No `@SuppressWarnings` without a ticket comment.
+- No raw types (`List` without `<T>`).
+- Kotlin: no `companion object` for stateful logic — that's a singleton in disguise.

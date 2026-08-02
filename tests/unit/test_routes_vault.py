@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
+from urllib.parse import quote
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from urllib.parse import quote
-
 from src.api.routes_vault import router
 from src.db.session import get_async_session
 
@@ -25,7 +24,7 @@ def vault_client(monkeypatch, tmp_path):
     fake.commit = AsyncMock()
     fake.merge = AsyncMock()
 
-    async def _exec(_stmt):  # noqa: ANN001
+    async def _exec(_stmt):
         m = MagicMock()
         m.all.return_value = [("raw/notes/a.md",)]
         m.scalar_one.return_value = 3
@@ -51,13 +50,16 @@ def test_path_traversal_rejected(vault_client):
     assert res.status_code == 403
 
 
-def test_list_files_returns_tree(vault_client):
-    client, _ = vault_client
-    res = client.get("/vault/files?prefix=raw/&depth=4")
+def test_vault_stats_includes_vault_path(vault_client, monkeypatch):
+    client, tmp_path = vault_client
+    monkeypatch.setenv("VAULT_HOST_PATH", "/host/shared/vault")
+    res = client.get("/vault/stats")
     assert res.status_code == 200
     data = res.json()
-    assert data["prefix"].startswith("raw")
-    assert data["nodes"]
+    assert data["vault_path"] == str(tmp_path.resolve())
+    assert data["vault_host_path"] == "/host/shared/vault"
+    assert "file_count" in data
+    assert "chunk_count" in data
 
 
 def test_read_markdown_frontmatter(vault_client):

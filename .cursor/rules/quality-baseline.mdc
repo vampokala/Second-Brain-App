@@ -1,0 +1,67 @@
+---
+description: Universal code quality standards (cognitive complexity, function size, error handling, security). Always applied.
+alwaysApply: true
+---
+
+# Quality Baseline
+
+These rules apply to every line of code you write or modify. Violations must be fixed before declaring a task complete.
+
+## Cognitive Load (SonarQube cognitive complexity)
+
+- Per-function cognitive complexity: **≤ 15**. If higher, refactor before submitting.
+- Prefer guard clauses over nested `if`. Each level of nesting adds cognitive cost.
+- No nested ternaries. Extract to a named function or `if/else`.
+
+```python
+# BAD — cognitive complexity ~12, nested branches
+def process(user, order):
+    if user is not None:
+        if user.active:
+            if order is not None:
+                if order.items:
+                    return sum(i.price for i in order.items if not i.refunded)
+    return 0
+
+# GOOD — guard clauses, complexity ~4
+def process(user, order):
+    if user is None or not user.active:
+        return 0
+    if order is None or not order.items:
+        return 0
+    return sum(i.price for i in order.items if not i.refunded)
+```
+
+## Function Shape
+
+- Max **60 lines** per function (warn at 40). If longer, extract sub-functions.
+- Max **5 parameters**. Beyond that, introduce a parameter object / dataclass / record.
+- One concern per function. Names describe behavior, not implementation.
+
+## Error Handling
+
+- Never swallow exceptions. `except: pass` and `catch (e) {}` are forbidden.
+- Always include context (operation, identifiers) when logging or re-raising.
+- Throw/raise typed errors. Don't throw bare `Error` / `Exception` / `RuntimeException`.
+
+## Logging & Observability
+
+- Structured logging only (key=value or JSON). No `print()` / `console.log` in shipped code.
+- Log at the appropriate level: `debug` for traces, `info` for state transitions, `warn` for recoverable issues, `error` for failures.
+- Never log secrets, tokens, PII, or full request/response bodies.
+
+## Security
+
+- No hard-coded secrets, API keys, passwords, or connection strings. Use env vars or a secret manager.
+- Validate all external input at boundaries (HTTP, queue, file).
+- Parameterize SQL. Never string-concatenate user input into queries or shell commands.
+
+## Comments & TODOs
+
+- Comments explain **why**, not **what**. Don't narrate code.
+- Every `TODO` / `FIXME` / `HACK` must reference a ticket: `TODO(JIRA-123): description`.
+- No commented-out code. Delete it; git remembers.
+
+## Definition of Done
+
+A change is not done until: lints pass, type-check passes, tests pass, coverage on changed lines ≥ 80%, cognitive complexity ≤ 15 for every changed function.

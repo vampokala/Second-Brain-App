@@ -1,0 +1,2077 @@
+{
+  "statistics": {
+    "detectionDate": "2026-05-17T14:58:53.671Z",
+    "formats": {
+      "javascript": {
+        "sources": {
+          "/Users/vamshipokala/Documents/Second-Brain-App/reports/jscpd/html/js/prism.js": {
+            "lines": 15,
+            "tokens": 4580,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/MessageStream.tsx": {
+            "lines": 25,
+            "tokens": 267,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/ConversationList.tsx": {
+            "lines": 83,
+            "tokens": 675,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/Composer.tsx": {
+            "lines": 2,
+            "tokens": 15,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/CitationPill.tsx": {
+            "lines": 2,
+            "tokens": 21,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/ChatHeader.tsx": {
+            "lines": 55,
+            "tokens": 426,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/VaultTab.tsx": {
+            "lines": 42,
+            "tokens": 454,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/SettingsTab.tsx": {
+            "lines": 43,
+            "tokens": 434,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/QueryTab.tsx": {
+            "lines": 159,
+            "tokens": 1351,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/IngestTab.tsx": {
+            "lines": 79,
+            "tokens": 666,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/DocumentsTab.tsx": {
+            "lines": 44,
+            "tokens": 491,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/ChatTab.tsx": {
+            "lines": 33,
+            "tokens": 302,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/session/SessionProvider.tsx": {
+            "lines": 0,
+            "tokens": 3,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/Uploader.tsx": {
+            "lines": 30,
+            "tokens": 338,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/ScopeToggle.tsx": {
+            "lines": 22,
+            "tokens": 165,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/SamplePromptChips.tsx": {
+            "lines": 3,
+            "tokens": 29,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/RetrievedChunks.tsx": {
+            "lines": 0,
+            "tokens": 5,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/CitationsList.tsx": {
+            "lines": 0,
+            "tokens": 15,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/coverage/lcov-report/sorter.js": {
+            "lines": 209,
+            "tokens": 1761,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/coverage/lcov-report/block-navigation.js": {
+            "lines": 86,
+            "tokens": 606,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/App.tsx": {
+            "lines": 124,
+            "tokens": 952,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/eslint.config.js": {
+            "lines": 28,
+            "tokens": 220,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 1084,
+          "tokens": 13776,
+          "sources": 22,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "tsx": {
+        "sources": {
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/MessageStream.tsx": {
+            "lines": 54,
+            "tokens": 476,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/ConversationList.tsx": {
+            "lines": 126,
+            "tokens": 1027,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/Composer.tsx": {
+            "lines": 48,
+            "tokens": 388,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/CitationPill.tsx": {
+            "lines": 21,
+            "tokens": 203,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/chat/ChatHeader.tsx": {
+            "lines": 108,
+            "tokens": 880,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/VaultTab.tsx": {
+            "lines": 130,
+            "tokens": 1435,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/SettingsTab.tsx": {
+            "lines": 174,
+            "tokens": 1993,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/QueryTab.tsx": {
+            "lines": 364,
+            "tokens": 3349,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/OverviewTab.tsx": {
+            "lines": 138,
+            "tokens": 1913,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/IngestTab.tsx": {
+            "lines": 195,
+            "tokens": 2120,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 30,
+            "duplicatedTokens": 358,
+            "percentage": 15.38,
+            "percentageTokens": 16.89,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/DocumentsTab.tsx": {
+            "lines": 82,
+            "tokens": 948,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/ChatTab.tsx": {
+            "lines": 296,
+            "tokens": 2830,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/session/SessionProvider.tsx": {
+            "lines": 111,
+            "tokens": 1008,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/Uploader.tsx": {
+            "lines": 107,
+            "tokens": 1067,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/ScopeToggle.tsx": {
+            "lines": 56,
+            "tokens": 462,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/SamplePromptChips.tsx": {
+            "lines": 25,
+            "tokens": 181,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/RetrievedChunks.tsx": {
+            "lines": 25,
+            "tokens": 283,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/CitationsList.tsx": {
+            "lines": 40,
+            "tokens": 385,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/components/AnswerPanel.tsx": {
+            "lines": 34,
+            "tokens": 315,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/main.tsx": {
+            "lines": 9,
+            "tokens": 68,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/App.tsx": {
+            "lines": 182,
+            "tokens": 1487,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 2325,
+          "tokens": 22818,
+          "sources": 21,
+          "clones": 2,
+          "duplicatedLines": 15,
+          "duplicatedTokens": 179,
+          "percentage": 0.65,
+          "percentageTokens": 0.78,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "typescript": {
+        "sources": {
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/test/setup.ts": {
+            "lines": 9,
+            "tokens": 95,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/test/server.ts": {
+            "lines": 92,
+            "tokens": 828,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/state/useChatStore.ts": {
+            "lines": 34,
+            "tokens": 433,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/session/useSession.ts": {
+            "lines": 54,
+            "tokens": 521,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/session/SessionContext.ts": {
+            "lines": 11,
+            "tokens": 101,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/vaultDeepLink.ts": {
+            "lines": 12,
+            "tokens": 150,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/utils.ts": {
+            "lines": 5,
+            "tokens": 58,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/streamQuery.ts": {
+            "lines": 95,
+            "tokens": 986,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/streamChat.ts": {
+            "lines": 48,
+            "tokens": 694,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/sseClient.ts": {
+            "lines": 19,
+            "tokens": 199,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/format.ts": {
+            "lines": 21,
+            "tokens": 320,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/lib/citationProvenance.ts": {
+            "lines": 11,
+            "tokens": 152,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/api/generated.ts": {
+            "lines": 72,
+            "tokens": 472,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/api/client.ts": {
+            "lines": 181,
+            "tokens": 1556,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/api/chatsClient.ts": {
+            "lines": 59,
+            "tokens": 640,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/vite.config.ts": {
+            "lines": 52,
+            "tokens": 529,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/frontend/playwright.config.ts": {
+            "lines": 19,
+            "tokens": 131,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 794,
+          "tokens": 7865,
+          "sources": 17,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "python": {
+        "sources": {
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/web/streamlit_app.py": {
+            "lines": 452,
+            "tokens": 4016,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/web/session_corpus.py": {
+            "lines": 158,
+            "tokens": 1328,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/web/ingestion_service.py": {
+            "lines": 102,
+            "tokens": 1066,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/watcher/vault_watcher.py": {
+            "lines": 164,
+            "tokens": 1495,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/utils/sb_env.py": {
+            "lines": 53,
+            "tokens": 557,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/utils/pgvector_store.py": {
+            "lines": 177,
+            "tokens": 1412,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 9,
+            "duplicatedTokens": 115,
+            "percentage": 5.08,
+            "percentageTokens": 8.14,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/utils/log.py": {
+            "lines": 136,
+            "tokens": 1187,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/utils/database.py": {
+            "lines": 202,
+            "tokens": 1928,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/utils/config.py": {
+            "lines": 242,
+            "tokens": 2355,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/monitoring/metrics.py": {
+            "lines": 205,
+            "tokens": 1510,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/monitoring/__init__.py": {
+            "lines": 16,
+            "tokens": 64,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/evaluation/truthfulness.py": {
+            "lines": 114,
+            "tokens": 988,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 7,
+            "duplicatedTokens": 80,
+            "percentage": 6.14,
+            "percentageTokens": 8.1,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/evaluation/retrieval_metrics.py": {
+            "lines": 125,
+            "tokens": 1632,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/evaluation/generation_metrics.py": {
+            "lines": 78,
+            "tokens": 927,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/db/session.py": {
+            "lines": 47,
+            "tokens": 288,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/db/models.py": {
+            "lines": 177,
+            "tokens": 2268,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/db/__init__.py": {
+            "lines": 5,
+            "tokens": 43,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/wiki_stub_writer.py": {
+            "lines": 129,
+            "tokens": 1216,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/vector_search.py": {
+            "lines": 66,
+            "tokens": 816,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/url_extractor.py": {
+            "lines": 66,
+            "tokens": 643,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/title_generator.py": {
+            "lines": 30,
+            "tokens": 310,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/retrieval_result.py": {
+            "lines": 43,
+            "tokens": 356,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/response_processor.py": {
+            "lines": 60,
+            "tokens": 745,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/response_cache.py": {
+            "lines": 63,
+            "tokens": 490,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/reranker.py": {
+            "lines": 79,
+            "tokens": 687,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/rag_orchestrator.py": {
+            "lines": 683,
+            "tokens": 6674,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 7,
+            "duplicatedTokens": 94,
+            "percentage": 1.02,
+            "percentageTokens": 1.41,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/query_processor.py": {
+            "lines": 107,
+            "tokens": 1163,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/prompt_manager.py": {
+            "lines": 103,
+            "tokens": 631,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/ollama_health.py": {
+            "lines": 73,
+            "tokens": 721,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/observability.py": {
+            "lines": 220,
+            "tokens": 1478,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/log_appender.py": {
+            "lines": 47,
+            "tokens": 391,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py": {
+            "lines": 340,
+            "tokens": 3420,
+            "sources": 1,
+            "clones": 6,
+            "duplicatedLines": 52,
+            "duplicatedTokens": 594,
+            "percentage": 15.29,
+            "percentageTokens": 17.37,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/ingest_pipeline.py": {
+            "lines": 499,
+            "tokens": 4807,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 33,
+            "duplicatedTokens": 313,
+            "percentage": 6.61,
+            "percentageTokens": 6.51,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/hybrid_retriever.py": {
+            "lines": 214,
+            "tokens": 2433,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/generator.py": {
+            "lines": 154,
+            "tokens": 1536,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/document_processor.py": {
+            "lines": 238,
+            "tokens": 2354,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/conversation_summarizer.py": {
+            "lines": 55,
+            "tokens": 577,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/context_optimizer.py": {
+            "lines": 135,
+            "tokens": 1261,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/citation_verifier.py": {
+            "lines": 43,
+            "tokens": 516,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/citation_tracker.py": {
+            "lines": 51,
+            "tokens": 619,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/chunk_metadata.py": {
+            "lines": 45,
+            "tokens": 483,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/chat_store.py": {
+            "lines": 279,
+            "tokens": 2868,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/chat_orchestrator.py": {
+            "lines": 228,
+            "tokens": 2212,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/bm25_search.py": {
+            "lines": 47,
+            "tokens": 540,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/core/bm25_index.py": {
+            "lines": 206,
+            "tokens": 2213,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/sse_bus.py": {
+            "lines": 43,
+            "tokens": 418,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_vault.py": {
+            "lines": 238,
+            "tokens": 2675,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 144,
+            "percentage": 4.2,
+            "percentageTokens": 5.38,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_settings.py": {
+            "lines": 96,
+            "tokens": 1095,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_ingest.py": {
+            "lines": 132,
+            "tokens": 1146,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_chats.py": {
+            "lines": 284,
+            "tokens": 2782,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 166,
+            "percentage": 4.23,
+            "percentageTokens": 5.97,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/models_vault.py": {
+            "lines": 36,
+            "tokens": 222,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/models_ingest.py": {
+            "lines": 43,
+            "tokens": 287,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/models_chats.py": {
+            "lines": 77,
+            "tokens": 579,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/models.py": {
+            "lines": 88,
+            "tokens": 724,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/main.py": {
+            "lines": 685,
+            "tokens": 6418,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 62,
+            "duplicatedTokens": 772,
+            "percentage": 9.05,
+            "percentageTokens": 12.03,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/api/key_validator.py": {
+            "lines": 56,
+            "tokens": 579,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/evals/adapters/ragas_llm_adapter.py": {
+            "lines": 56,
+            "tokens": 384,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/test.py": {
+            "lines": 16,
+            "tokens": 115,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/query.py": {
+            "lines": 244,
+            "tokens": 1953,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 7,
+            "duplicatedTokens": 94,
+            "percentage": 2.87,
+            "percentageTokens": 4.81,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/main.py": {
+            "lines": 31,
+            "tokens": 223,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/src/ingest.py": {
+            "lines": 167,
+            "tokens": 1359,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/spaces/bootstrap_demo.py": {
+            "lines": 43,
+            "tokens": 257,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/spaces/app.py": {
+            "lines": 81,
+            "tokens": 513,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/scripts/perf_baseline.py": {
+            "lines": 52,
+            "tokens": 403,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/scripts/compare_evals.py": {
+            "lines": 157,
+            "tokens": 1134,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/evals/run_evals.py": {
+            "lines": 581,
+            "tokens": 5316,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 7,
+            "duplicatedTokens": 80,
+            "percentage": 1.2,
+            "percentageTokens": 1.5,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "/Users/vamshipokala/Documents/Second-Brain-App/test.py": {
+            "lines": 32,
+            "tokens": 31,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 9994,
+          "tokens": 93837,
+          "sources": 67,
+          "clones": 11,
+          "duplicatedLines": 103,
+          "duplicatedTokens": 1226,
+          "percentage": 1.03,
+          "percentageTokens": 1.31,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 14197,
+      "tokens": 138296,
+      "sources": 127,
+      "clones": 13,
+      "duplicatedLines": 118,
+      "duplicatedTokens": 1405,
+      "percentage": 0.83,
+      "percentageTokens": 1.02,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "tsx",
+      "lines": 8,
+      "fragment": "} catch (e) {\n      setLog((prev) => [`error: ${e instanceof Error ? e.message : String(e)}`, ...prev].slice(0, 80))\n    } finally {\n      setBusy(false)\n    }\n  }\n\n  async function onUrlIngest",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/IngestTab.tsx",
+        "start": 64,
+        "end": 71,
+        "startLoc": {
+          "line": 64,
+          "column": 5,
+          "position": 875
+        },
+        "endLoc": {
+          "line": 71,
+          "column": 29,
+          "position": 954
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/IngestTab.tsx",
+        "start": 52,
+        "end": 59,
+        "startLoc": {
+          "line": 52,
+          "column": 5,
+          "position": 713
+        },
+        "endLoc": {
+          "line": 59,
+          "column": 31,
+          "position": 792
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 9,
+      "fragment": "${JSON.stringify(j)}`, ...prev].slice(0, 80))\n    } catch (e) {\n      setLog((prev) => [`error: ${e instanceof Error ? e.message : String(e)}`, ...prev].slice(0, 80))\n    } finally {\n      setBusy(false)\n    }\n  }\n\n  return",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/IngestTab.tsx",
+        "start": 77,
+        "end": 85,
+        "startLoc": {
+          "line": 77,
+          "column": 34,
+          "position": 1052
+        },
+        "endLoc": {
+          "line": 85,
+          "column": 9,
+          "position": 1152
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/frontend/src/tabs/IngestTab.tsx",
+        "start": 63,
+        "end": 59,
+        "startLoc": {
+          "line": 63,
+          "column": 35,
+          "position": 850
+        },
+        "endLoc": {
+          "line": 59,
+          "column": 8,
+          "position": 788
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 7,
+      "fragment": ":\n    def __init__(self, base_url: str, timeout_seconds: int) -> None:\n        self.base_url = base_url.rstrip(\"/\")\n        self.timeout_seconds = timeout_seconds\n\n    def _key(self, api_key_override: Optional[str] = None) -> str:\n        key = api_key_override or os.getenv(\"ANTHROPIC_API_KEY\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py",
+        "start": 171,
+        "end": 177,
+        "startLoc": {
+          "line": 171,
+          "column": 24,
+          "position": 1612
+        },
+        "endLoc": {
+          "line": 177,
+          "column": 64,
+          "position": 1704
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py",
+        "start": 112,
+        "end": 118,
+        "startLoc": {
+          "line": 112,
+          "column": 21,
+          "position": 1015
+        },
+        "endLoc": {
+          "line": 118,
+          "column": 61,
+          "position": 1107
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 15,
+      "fragment": ")\n            for raw in resp.iter_lines(decode_unicode=True):\n                if not raw:\n                    continue\n                line = raw.strip()\n                if not line.startswith(\"data:\"):\n                    continue\n                data = line[5:].strip()\n                if data == \"[DONE]\":\n                    break\n                try:\n                    payload = json.loads(data)\n                except json.JSONDecodeError:\n                    continue\n                if",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py",
+        "start": 222,
+        "end": 236,
+        "startLoc": {
+          "line": 222,
+          "column": 60,
+          "position": 2117
+        },
+        "endLoc": {
+          "line": 236,
+          "column": 19,
+          "position": 2230
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py",
+        "start": 151,
+        "end": 165,
+        "startLoc": {
+          "line": 151,
+          "column": 57,
+          "position": 1439
+        },
+        "endLoc": {
+          "line": 165,
+          "column": 22,
+          "position": 1552
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 7,
+      "fragment": ":\n    def __init__(self, base_url: str, timeout_seconds: int) -> None:\n        self.base_url = base_url.rstrip(\"/\")\n        self.timeout_seconds = timeout_seconds\n\n    def _key(self, api_key_override: Optional[str] = None) -> str:\n        key = api_key_override or os.getenv(\"GEMINI_API_KEY\"",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py",
+        "start": 242,
+        "end": 248,
+        "startLoc": {
+          "line": 242,
+          "column": 21,
+          "position": 2287
+        },
+        "endLoc": {
+          "line": 248,
+          "column": 61,
+          "position": 2379
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/llm_provider.py",
+        "start": 112,
+        "end": 118,
+        "startLoc": {
+          "line": 112,
+          "column": 21,
+          "position": 1015
+        },
+        "endLoc": {
+          "line": 118,
+          "column": 61,
+          "position": 1107
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": "meta.get(\"relpath\") or \"\"),\n        \"chunk_index\": int(meta.get(\"chunk_index\") or 0),\n        \"content\": body,\n        \"heading\": meta.get(\"heading\"),\n        \"section\": meta.get(\"section\"),\n        \"file_type\": meta.get(\"file_type\"),\n        \"tags\": json.dumps(meta.get(\"tags\") or []),\n        \"metadata\": json.dumps(meta),\n    }\n    if embedding_sql",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/ingest_pipeline.py",
+        "start": 68,
+        "end": 77,
+        "startLoc": {
+          "line": 68,
+          "column": 28,
+          "position": 594
+        },
+        "endLoc": {
+          "line": 77,
+          "column": 21,
+          "position": 709
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/utils/pgvector_store.py",
+        "start": 119,
+        "end": 128,
+        "startLoc": {
+          "line": 119,
+          "column": 67,
+          "position": 824
+        },
+        "endLoc": {
+          "line": 128,
+          "column": 27,
+          "position": 939
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 13,
+      "fragment": "self._persist_bm25(session)\n            session.merge(\n                VaultFile(\n                    path=relpath,\n                    title=metadata.get(\"title\"),\n                    section=str(metadata.get(\"section\") or \"\") or None,\n                    file_type=metadata.get(\"file_type\"),\n                    tags=metadata.get(\"tags\"),\n                    size_bytes=None,\n                    chunk_count=n,\n                )\n            )\n            session.execute",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/ingest_pipeline.py",
+        "start": 259,
+        "end": 271,
+        "startLoc": {
+          "line": 259,
+          "column": 13,
+          "position": 2142
+        },
+        "endLoc": {
+          "line": 271,
+          "column": 28,
+          "position": 2241
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/ingest_pipeline.py",
+        "start": 243,
+        "end": 255,
+        "startLoc": {
+          "line": 243,
+          "column": 17,
+          "position": 2005
+        },
+        "endLoc": {
+          "line": 255,
+          "column": 31,
+          "position": 2104
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 6,
+      "fragment": "))\n            elif is_file:\n                out.append(FileNode(name=name, path=full_path, kind=\"file\", children=[]))\n            else:\n                out.append(FileNode(name=name, path=full_path, kind=\"dir\", children=[]))\n        return",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_vault.py",
+        "start": 93,
+        "end": 98,
+        "startLoc": {
+          "line": 93,
+          "column": 91,
+          "position": 1036
+        },
+        "endLoc": {
+          "line": 98,
+          "column": 15,
+          "position": 1108
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_vault.py",
+        "start": 89,
+        "end": 94,
+        "startLoc": {
+          "line": 89,
+          "column": 91,
+          "position": 968
+        },
+        "endLoc": {
+          "line": 94,
+          "column": 17,
+          "position": 1040
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 7,
+      "fragment": ",\n            ):\n                yield {\"event\": evt[\"event\"], \"data\": json.dumps(evt[\"data\"])}\n        except Exception as exc:  # noqa: BLE001\n            yield {\"event\": \"error\", \"data\": json.dumps({\"message\": str(exc)})}\n\n    return EventSourceResponse(gen())",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_chats.py",
+        "start": 279,
+        "end": 285,
+        "startLoc": {
+          "line": 279,
+          "column": 48,
+          "position": 2699
+        },
+        "endLoc": {
+          "line": 285,
+          "column": 38,
+          "position": 2782
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/routes_chats.py",
+        "start": 242,
+        "end": 248,
+        "startLoc": {
+          "line": 242,
+          "column": 47,
+          "position": 2298
+        },
+        "endLoc": {
+          "line": 248,
+          "column": 38,
+          "position": 2381
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 10,
+      "fragment": ".append(\n            RetrievedChunkModel(\n                id=legacy[\"id\"],\n                score=float(legacy.get(\"score\") or 0.0),\n                source=str(legacy.get(\"source\") or \"hybrid\"),\n                confidence=float(legacy.get(\"confidence\") or 0.0),\n                metadata=dict(legacy.get(\"metadata\") or {}),\n                preview=(legacy.get(\"text\") or \"\")[:240],\n            )\n        )",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/main.py",
+        "start": 551,
+        "end": 560,
+        "startLoc": {
+          "line": 551,
+          "column": 18,
+          "position": 5111
+        },
+        "endLoc": {
+          "line": 560,
+          "column": 10,
+          "position": 5226
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/main.py",
+        "start": 272,
+        "end": 280,
+        "startLoc": {
+          "line": 272,
+          "column": 12,
+          "position": 2354
+        },
+        "endLoc": {
+          "line": 280,
+          "column": 15,
+          "position": 2467
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 23,
+      "fragment": ", request, client_key=client_key)\n    session_kwargs: dict[str, Any] = {}\n    knowledge_scope = (req.knowledge_scope or \"global\").strip().lower()\n    if req.session_id:\n        if not _demo_uploads_enabled():\n            raise HTTPException(status_code=400, detail=\"Session querying is only enabled in demo uploads mode\")\n        session = session_corpus.get_or_create(req.session_id)\n        if not session.upload_dir.exists():\n            raise HTTPException(status_code=404, detail=\"Session not found\")\n        session_corpus.touch(req.session_id)\n        has_uploads = any(p.is_file() for p in session.upload_dir.glob(\"*\"))\n        if knowledge_scope == \"session\" and not has_uploads:\n            raise HTTPException(status_code=409, detail=\"No uploaded documents in this session yet. Upload first.\")\n        if knowledge_scope == \"both\" and not has_uploads:\n            knowledge_scope = \"global\"\n        session_kwargs = {\n            \"session_bm25_index_path\": str(session.bm25_index_path),\n            \"session_collection_name\": session.collection_name,\n            \"session_chroma_path\": str(session.chroma_path),\n            \"knowledge_scope\": knowledge_scope,\n        }\n\n    def",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/main.py",
+        "start": 606,
+        "end": 628,
+        "startLoc": {
+          "line": 606,
+          "column": 37,
+          "position": 5581
+        },
+        "endLoc": {
+          "line": 628,
+          "column": 8,
+          "position": 5852
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/api/main.py",
+        "start": 497,
+        "end": 518,
+        "startLoc": {
+          "line": 497,
+          "column": 30,
+          "position": 4563
+        },
+        "endLoc": {
+          "line": 518,
+          "column": 8,
+          "position": 4833
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 8,
+      "fragment": "from src.core.prompt_manager import PromptManager\nfrom src.core.query_processor import QueryProcessor\nfrom src.core.reranker import CrossEncoderReranker, RankedResult\nfrom src.core.response_cache import ResponseCache, cache_key\nfrom src.core.response_processor import ResponseProcessor\nfrom src.core.retrieval_result import RetrievalResult\nfrom src.core.vector_search import VectorSearch\nfrom src.utils",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/query.py",
+        "start": 26,
+        "end": 33,
+        "startLoc": {
+          "line": 26,
+          "column": 1,
+          "position": 91
+        },
+        "endLoc": {
+          "line": 33,
+          "column": 15,
+          "position": 185
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/core/rag_orchestrator.py",
+        "start": 20,
+        "end": 27,
+        "startLoc": {
+          "line": 20,
+          "column": 1,
+          "position": 173
+        },
+        "endLoc": {
+          "line": 27,
+          "column": 20,
+          "position": 267
+        }
+      }
+    },
+    {
+      "format": "python",
+      "lines": 8,
+      "fragment": "(citations: List[Dict[str, Any]]) -> float:\n    if not citations:\n        return 0.0\n    scores = [float(c.get(\"verification_score\", 0.0)) for c in citations]\n    return sum(scores) / len(scores)\n\n\n# ---------------------------------------------------------------------------",
+      "tokens": 0,
+      "firstFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/evals/run_evals.py",
+        "start": 266,
+        "end": 273,
+        "startLoc": {
+          "line": 266,
+          "column": 31,
+          "position": 2257
+        },
+        "endLoc": {
+          "line": 273,
+          "column": 78,
+          "position": 2337
+        }
+      },
+      "secondFile": {
+        "name": "/Users/vamshipokala/Documents/Second-Brain-App/src/evaluation/truthfulness.py",
+        "start": 85,
+        "end": 91,
+        "startLoc": {
+          "line": 85,
+          "column": 31,
+          "position": 668
+        },
+        "endLoc": {
+          "line": 91,
+          "column": 6,
+          "position": 748
+        }
+      }
+    }
+  ]
+}

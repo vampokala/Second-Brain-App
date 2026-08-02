@@ -1,0 +1,115 @@
+## Qlty Cloud config (free up to 5 users).
+## See https://docs.qlty.sh/cli/qlty-toml
+## Qlty replaces SonarQube's dashboard role: cognitive complexity trends, churn,
+## duplication, maintainability rating, PR comments. Observation-only here —
+## merge-blocking is enforced by the OSS gates in ci/github-actions/quality.yml.
+
+config_version = "0"
+
+[[source]]
+name = "default"
+default = true
+
+## ---- Enabled plugins (free OSS analyzers, run by Qlty) -----------------------
+## Each line maps to a plugin slug from https://docs.qlty.sh/plugins
+## Most of these are also in pre-commit so findings are local-first.
+
+[[plugin]]
+name = "ruff"            # Python lint + complexity
+mode = "block"           # show in PR comment, do NOT block (gates do that)
+
+[[plugin]]
+name = "mypy"
+mode = "comment"
+
+[[plugin]]
+name = "bandit"
+mode = "comment"
+
+[[plugin]]
+name = "radon"           # Python cognitive complexity
+mode = "comment"
+
+[[plugin]]
+name = "eslint"          # uses repo's eslint config including eslint-plugin-sonarjs
+mode = "comment"
+
+[[plugin]]
+name = "biome"
+mode = "comment"
+
+[[plugin]]
+name = "tsc"             # TypeScript type errors
+mode = "comment"
+
+[[plugin]]
+name = "detekt"          # Kotlin
+mode = "comment"
+
+[[plugin]]
+name = "pmd"             # Java + CognitiveComplexity rule
+mode = "comment"
+
+[[plugin]]
+name = "checkov"         # IaC security (optional, low overhead)
+mode = "comment"
+
+[[plugin]]
+name = "trivy"           # SCA / container CVEs
+mode = "comment"
+
+[[plugin]]
+name = "trufflehog"      # secrets
+mode = "comment"
+
+## ---- Smells (Qlty's built-in code smells) -----------------------------------
+[smells]
+## These map to SonarQube's "Code Smells" category.
+mode = "comment"
+
+[smells.boolean_logic]    # complex boolean expressions
+threshold = 4
+
+[smells.function_complexity]  # cognitive complexity (Qlty's own measure)
+threshold = 15            # matches our org standard
+
+[smells.function_parameters]
+threshold = 5
+
+[smells.function_lines]
+threshold = 60
+
+[smells.return_statements]
+threshold = 4
+
+[smells.nested_control_flow]
+threshold = 3
+
+[smells.identical_code]    # duplication (Qlty's measure)
+threshold = 35             # bytes; Qlty's recommended default
+
+## ---- Coverage (Qlty parses coverage reports the CI uploads) -----------------
+[coverage]
+total_threshold = 80
+diff_threshold = 80      # new code coverage gate
+upload_paths = [
+  "coverage.xml",
+  "coverage/cobertura-coverage.xml",
+  "coverage/lcov.info",
+  "build/reports/jacoco/test/jacocoTestReport.xml",
+  "target/site/jacoco/jacoco.xml",
+]
+
+## ---- Excludes ---------------------------------------------------------------
+exclude_patterns = [
+  "**/migrations/**",
+  "**/alembic/**",
+  "**/generated/**",
+  "**/node_modules/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/target/**",
+  "**/__pycache__/**",
+  "**/*.d.ts",
+  "**/coverage/**",
+]

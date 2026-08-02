@@ -1,0 +1,58 @@
+---
+description: Test coverage and validation requirements. Every code change must ship tests. Always applied.
+alwaysApply: true
+---
+
+# Tests Required
+
+Every code change must include tests. No exceptions without an exemption ticket per `docs/exception-process.md`.
+
+## Coverage Targets (on new/changed code only)
+
+- Line coverage: **≥ 80%**
+- Branch coverage: **≥ 70%**
+- Per-file floor: **≥ 60%** line coverage
+- Legacy code is grandfathered until touched. Once you modify a file, its new/changed lines must meet the targets.
+
+Do not lower coverage thresholds in config to make a build pass. Add tests instead, or request an exemption.
+
+## What Every Change Must Cover
+
+Minimum test set for any non-trivial change:
+
+1. **Happy path** — the expected behavior.
+2. **At least one error path** — bad input, dependency failure, timeout.
+3. **At least one boundary** — empty, null, max, min, off-by-one.
+4. **Idempotency / concurrency** — if the code is called more than once or in parallel.
+
+## Assertion Quality
+
+- Assert behavior, not implementation. Test the public contract.
+- One logical assertion per test. Group related asserts with clear messages.
+- No placeholder tests (`assert True`, `expect(true).toBe(true)`, `assertTrue(true)`).
+- Test names describe behavior: `test_refund_fails_when_order_already_refunded`, not `test_refund_2`.
+
+## Patterns to Use
+
+- **AAA**: Arrange, Act, Assert. Blank lines separating the three phases.
+- **Fixtures over setUp**: pytest fixtures, Vitest `beforeEach` scoped narrowly, JUnit `@BeforeEach` only when shared.
+- **Property-based tests** for pure functions: Hypothesis (Python), fast-check (TS), jqwik (JVM).
+- **Fakes over mocks** when the dependency has clear semantics (in-memory repo, in-memory queue).
+- **Mock only at process boundaries** (HTTP, DB, filesystem, time).
+
+## What to Verify Before Declaring Done
+
+Run the coverage check on the changed lines:
+
+```bash
+# Python
+pytest --cov=src --cov-report=xml && diff-cover coverage.xml --compare-branch=origin/main --fail-under=80
+
+# TypeScript
+vitest run --coverage && diff-cover coverage/cobertura-coverage.xml --compare-branch=origin/main --fail-under=80
+
+# JVM
+./gradlew test jacocoTestReport && diff-cover build/reports/jacoco/test/jacocoTestReport.xml --compare-branch=origin/main --fail-under=80
+```
+
+If `diff-cover` fails, identify the uncovered lines and add tests. Do not ship.

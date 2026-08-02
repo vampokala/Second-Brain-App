@@ -18,6 +18,7 @@ class NewMessage:
     role: str
     content: str
     parent_id: uuid.UUID | None = None
+    retrieved: list[dict[str, Any]] | None = None
 
 
 @dataclass
@@ -132,6 +133,7 @@ class ChatStore:
             role=msg.role,
             content=msg.content,
             parent_id=msg.parent_id,
+            retrieved=msg.retrieved,
         )
         async with self._factory() as session:
             session.add(m)

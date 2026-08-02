@@ -1,128 +1,111 @@
 # Project Overview
 
-Doc-Ingestion is a citation-aware RAG system with three user-facing surfaces:
+**Second-Brain-App** is a local-first LLM wiki: it ingests your documents and team
+sources, then answers questions grounded in that knowledge with inline citations.
+Instead of a generic chatbot, every answer is built from retrieved evidence in your
+own corpus.
 
-- CLI (`src/query.py`, `src/ingest.py`)
-- FastAPI (`src/api/main.py`)
-- Streamlit (`src/web/streamlit_app.py`)
+Purpose: summarize what this project does and how it is designed.
+Audience: first-time visitors, reviewers, and engineers doing a quick architecture review.
+Reading time: ~4 minutes.
 
-## System map
+## Problem
 
-```mermaid
-flowchart LR
-  client[User] --> cli[CLI]
-  client --> api[FastAPI]
-  client --> ui[Streamlit]
-  cli --> orchestrator[RAGOrchestrator]
-  api --> orchestrator
-  ui --> orchestrator
-  orchestrator --> hybrid[HybridRetriever]
-  hybrid --> rerank[CrossEncoderReranker]
-  rerank --> gen[RAGGenerator]
-  gen --> cite[CitationTrackerAndVerifier]
-  gen --> providers[LLMProviderRouter]
-  providers --> ollama[Ollama]
-  providers --> openai[OpenAI]
-  providers --> claude[AnthropicClaude]
-  providers --> gemini[Gemini]
-  orchestrator --> bm25[BM25Index]
-  orchestrator --> vector[VectorStore]
-```
+Teams scatter knowledge across PDFs, markdown notes, wikis, tickets, and commit
+history. Finding reliable answers is slow when search is weak and responses aren't
+grounded. This app combines lexical + semantic retrieval with a generation layer
+that stays tied to retrieved context, and keeps the corpus fresh by syncing from
+team systems.
 
-## Retrieval and citation lifecycle
+## User-facing surfaces
 
-1. Query is normalized and sent to BM25 + vector retrieval.
-2. Ranked IDs are fused with weighted RRF.
-3. Optional cross-encoder reranking narrows final context.
-4. Prompt is generated and sent to selected provider/model.
-5. Citations are extracted, mapped to chunk IDs, and verification-scored.
-6. Structured response is returned to CLI/API/UI.
+The primary surface is a **React single-page app** served by the API, organized
+into four sections:
 
-## Ingestion lifecycle
+- **Ask** — multi-turn chat with personas, grounding toggles, Sources drawer, save-to-wiki / rolling memory, truthfulness, and pin / regenerate / edit-fork.
+- **Knowledge** — Browse (Ask about this file), Add (wide formats, cancel, capabilities, Cursor-assist APIs), Connectors (sync + ask about synced).
+- **Settings** — LLM keys, connector tokens, chat persona, Brave / web / vision / memory.
+- **Help** — demo-script cards + `/observability/dashboard`.
 
-1. Files are parsed and chunked by `DocumentProcessor`.
-2. Chunks are inserted into BM25 index.
-3. Embeddings are generated and upserted to vector DB.
-4. Streamlit ingest tab can stage uploads and trigger this flow.
-# Project Overview
+A **FastAPI** backend exposes the same capabilities over HTTP (see
+[`Second_Brain_ClaudProject_Context.md`](Second_Brain_ClaudProject_Context.md) §4
+for the route map). A legacy Streamlit demo path remains for Hugging Face Spaces.
 
-Purpose: summarize what this project does, why it is useful, and how it is designed.  
-Audience: first-time visitors, interviewers, and engineers doing a quick architecture review.  
-Reading time: 4-6 minutes.
-
-## What this project is
-
-Doc-Ingestion is a local-first RAG system that converts document collections into grounded Q&A answers. Instead of querying a closed dataset or relying on a generic chatbot response, it retrieves evidence from user-provided files and builds answers from those sources.
-
-## Problem statement
-
-Teams often store information across PDFs, markdown notes, and text files. Finding reliable answers is slow and error-prone when search is weak and responses are not grounded. This project addresses that by combining lexical and semantic retrieval with a generation layer designed to stay tied to retrieved context.
-
-## Solution summary
-
-- Ingest and normalize multiple document formats.
-- Build both sparse and dense indexes.
-- Combine retrieval results using reciprocal rank fusion.
-- Improve ranking quality with cross-encoder reranking.
-- Optimize context and generate responses through Ollama.
-- Evaluate retrieval and generation quality with explicit metrics modules.
-
-## Architecture at a glance
+## How it works
 
 ```mermaid
 flowchart LR
-  subgraph inputs [Inputs]
-    docs[DocumentFiles]
-    question[UserQuestion]
+  subgraph sources [Sources]
+    docs[Documents]
+    conn[GitHub / JIRA / Confluence / Slack]
+    q[User question]
   end
-  subgraph ingestPath [IngestionPath]
-    process[DocumentProcessAndChunk]
-    bm25[BM25Index]
-    vector[VectorStore]
+  subgraph ingest [Ingestion]
+    process[Process & chunk]
+    bm25[BM25 index]
+    vector[pgvector store]
   end
-  subgraph queryPath [QueryPath]
-    retrieve[HybridRetrieve]
-    rerank[CrossEncoderRerank]
-    context[ContextOptimize]
-    gen[RAGGenerate]
+  subgraph query [Query path]
+    retrieve[Hybrid retrieve]
+    rerank[Cross-encoder rerank]
+    gen[Generate + cite]
   end
   docs --> process
+  conn --> process
   process --> bm25
   process --> vector
-  question --> retrieve
+  q --> retrieve
   bm25 --> retrieve
   vector --> retrieve
-  retrieve --> rerank
-  rerank --> context
-  context --> gen
+  retrieve --> rerank --> gen
 ```
 
-## Query lifecycle
+**Query lifecycle:** normalize the query → BM25 + vector retrieval → weighted RRF
+fusion → optional cross-encoder reranking → context optimization → provider routing
+(Ollama / OpenAI / Anthropic / Gemini) → answer with citations mapped to chunk IDs
+and verification-scored.
+
+**Ingestion lifecycle:** files/text/URLs (and connector records) are parsed by
+format-specific extractors (including tabular / slides / notebooks / code),
+chunked by `DocumentProcessor`, written to the BM25 snapshot and `document_chunks`
+vectors, with content-hash skip via `.ingest-manifest.json`, metadata in
+`vault_files`, and progress streamed over SSE.
+
+## Connectors & scheduler
+
+Team sources plug in through a pluggable connector layer
+(`src/core/connectors/`). Each connector normalizes records — GitHub commits/PRs,
+JIRA issues, Confluence pages, Slack messages + thread replies — to markdown and
+runs them through the same ingest pipeline, so synced items become fully
+retrievable and citable. A per-connector scheduler refreshes each source on its own
+cadence (manual / 15m / hourly / 6h / daily) with incremental cursors. Credentials
+live in environment variables and are never stored in the database.
 
 ```mermaid
-flowchart TD
-  startQ[StartQuery] --> parseQ[QueryProcess]
-  parseQ --> hybridQ[HybridRetrieve]
-  hybridQ --> fuseQ[RrfFuse]
-  fuseQ --> rerankQ[CrossEncoderRerank]
-  rerankQ --> optimizeQ[ContextOptimize]
-  optimizeQ --> promptQ[PromptBuild]
-  promptQ --> answerQ[GenerateAnswer]
-  answerQ --> validateQ[ValidateAndFormat]
-  validateQ --> endQ[FinalOutput]
+flowchart LR
+  sched[Per-connector scheduler] --> reg[Connector registry]
+  reg --> gh[GitHub]
+  reg --> jira[JIRA]
+  reg --> conf[Confluence]
+  reg --> slack[Slack]
+  gh --> norm[Normalize to markdown]
+  jira --> norm
+  conf --> norm
+  slack --> norm
+  norm --> ingest[Ingest pipeline]
+  ingest --> corpus[(Indexed corpus)]
 ```
 
-## Why this is a strong portfolio project
+## Why it's notable
 
-- Demonstrates full-stack AI system design, not just prompt calls.
-- Shows quality focus through retrieval and generation evaluation modules.
-- Uses practical local inference workflows (Ollama) and production-minded retrieval abstractions.
-- Includes modular code boundaries that support iteration and extension.
+- Full-stack AI system design (retrieval, reranking, generation, citations), not just prompt calls.
+- Local-first inference via Ollama with production-minded retrieval abstractions.
+- Pluggable connectors keep team knowledge current for grounded answers.
+- Modular boundaries (ingest / retrieval / generation / API / UI / connectors) that support iteration.
 
-## Where to go deeper
+## Go deeper
 
-- Root documentation: [`../README.md`](../README.md)
-- Docs hub: [`README.md`](README.md)
-- Hybrid retrieval internals: [`phase2_hybrid_retrieval.md`](phase2_hybrid_retrieval.md)
-- Reranking and generation plan: [`phase3_reranking_generation.md`](phase3_reranking_generation.md)
-- Public progress: [`ROADMAP.md`](ROADMAP.md)
+- Setup & usage: [`INSTRUCTIONS.md`](INSTRUCTIONS.md)
+- Architecture & schema: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- Grounding/reference: [`Second_Brain_ClaudProject_Context.md`](Second_Brain_ClaudProject_Context.md)
+- Operations: [`RUNBOOK.md`](RUNBOOK.md)
